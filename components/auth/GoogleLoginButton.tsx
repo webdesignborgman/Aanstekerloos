@@ -4,18 +4,17 @@ import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { FcGoogle } from "react-icons/fc";
-import { toast } from "sonner";
 
 export function GoogleLoginButton() {
   const handleGoogleLogin = async () => {
+    console.log("🔐 login gestart via popup");
+
+    const provider = new GoogleAuthProvider();
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      toast.success("Succesvol ingelogd!");
-      // Je wordt automatisch door AuthProvider geüpdatet
+      const result = await signInWithPopup(auth, provider);
+      console.log("✅ user via popup:", result.user);
     } catch (err) {
-      toast.error("Inloggen mislukt");
-      console.error(err);
+      console.error("❌ Login fout (popup)", err);
     }
   };
 

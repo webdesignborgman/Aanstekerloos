@@ -1,0 +1,92 @@
+"use client";
+
+import { useAuth } from "@/components/auth/AuthContext";
+import { useEffect, useState } from "react";
+import PushManager from "@/components/push/PushManager";
+import { doc, collection, getFirestore, onSnapshot, deleteDoc } from "firebase/firestore";
+import Image from "next/image";
+import { firestore } from "@/lib/firebase";
+
+export default function ProfilePage() {
+  const { user } = useAuth();
+  const db = getFirestore(); // firestore instance van jouw lib
+
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const colRef = collection(db, "users", user.uid, "subscriptions");
+    const unsubscribe = onSnapshot(colRef, (snapshot) => {
+      setSubscriptions(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => unsubscribe();
+  }, [user, db]);
+
+  const handleUnsubscribe = async (subId: string) => {
+    await deleteDoc(doc(db, "users", user!.uid, "subscriptions", subId));
+  };
+
+  if (!user) {
+    return (
+      <main className="p-4">
+        <p>Even geduld, je wordt ingeladen...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="max-w-xl mx-auto p-4 space-y-8">
+      {/* Profielsectie */}
+      <section className="flex items-center space-x-4 bg-white p-4 rounded shadow">
+        {user.photoURL && (
+          <Image
+            src={user.photoURL}
+            alt="Avatar"
+            width={64}
+            height={64}
+            className="rounded-full"
+          />
+        )}
+        <div>
+          <h2 className="text-xl font-semibold">{user.displayName}</h2>
+          <p className="text-gray-600">{user.email}</p>
+        </div>
+      </section>
+
+      {/* Notificatiesectie */}
+      <section className="bg-white p-4 rounded shadow space-y-4">
+        <h3 className="text-lg font-semibold">Notificatie-instellingen</h3>
+        <PushManager />
+
+        {subscriptions.length > 0 && (
+          <div>
+            <h4 className="font-medium">Aangesloten apparaten:</h4>
+            <ul className="list-disc list-inside">
+              {subscriptions.map((sub) => (
+                <li
+                  key={sub.id}
+                  className="flex justify-between items-center py-1"
+                >
+                  <span>
+                    {sub.platform || "Apparaat"} –{" "}
+                    {sub.createdAt?.toDate
+                      ? sub.createdAt.toDate().toLocaleString()
+                      : "Onbekende datum"}
+                  </span>
+                  <button
+                    onClick={() => handleUnsubscribe(sub.id)}
+                    className="text-red-500 hover:underline"
+                  >
+                    Uitschrijven
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}

@@ -1,8 +1,19 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import {
+  onAuthStateChanged,
+  getRedirectResult,
+  User,
+} from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 type AuthContextType = {
   user: User | null;
@@ -17,16 +28,37 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    // Luistert naar firebase user (en automatisch uitloggen)
+    console.log("🟡 AuthProvider gestart");
+
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          console.log("✅ getRedirectResult: user gevonden", result.user);
+          setUser(result.user);
+        } else {
+          console.log("ℹ️ getRedirectResult: geen user gevonden");
+        }
+      })
+      .catch((error) => {
+        console.error("❌ getRedirectResult fout:", error);
+      });
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log("📡 onAuthStateChanged triggered:", firebaseUser);
       setUser(firebaseUser);
       setLoading(false);
+
+      if (firebaseUser) {
+        console.log("🚀 Redirecting naar /dashboard");
+        router.push("/dashboard");
+      }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
@@ -35,7 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Handige custom hook
 export function useAuth() {
   return useContext(AuthContext);
 }
