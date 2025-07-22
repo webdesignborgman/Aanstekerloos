@@ -1,16 +1,14 @@
+// components/smoke/SmokeHeatmapResponsive.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { collection, onSnapshot, query } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useAuth } from "@/components/auth/AuthContext";
-import { SmokeLog } from "@/types/smokeLog";
-import { smokeLogConverter } from "@/lib/converters/smokeLogConverter";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { SmokeLog } from "@/types/smokeLog";
+import { SmokeDayDetailModal } from "@/components/smoke/SmokeDayDetailModal";
+import { addDays, startOfWeek, endOfWeek, isSameDay, format, addWeeks, subWeeks, isSameWeek } from "date-fns";
 
-// 0 t/m 23 uur
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const DAYS = [
+// Exporteer DAYS voor andere charts
+export const DAYS = [
   { key: 1, label: "ma" },
   { key: 2, label: "di" },
   { key: 3, label: "wo" },
@@ -19,169 +17,163 @@ const DAYS = [
   { key: 6, label: "za" },
   { key: 0, label: "zo" },
 ];
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-export function SmokeHeatmapResponsive() {
-  const { user } = useAuth();
-  const [logs, setLogs] = useState<SmokeLog[]>([]);
+interface Props {
+  logs: SmokeLog[];
+}
 
-  useEffect(() => {
-    if (!user) return;
-    const colRef = collection(db, `users/${user.uid}/smokeLogs`).withConverter(smokeLogConverter);
-    const q = query(colRef);
-    const unsub = onSnapshot(q, (snap) => {
-      setLogs(snap.docs.map((doc) => doc.data()));
-    });
-    return () => unsub();
-  }, [user]);
+export function SmokeHeatmapResponsive({ logs }: Props) {
+  // Weeknavigatie state
+  const [weekStart, setWeekStart] = useState(() =>
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  );
+  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
 
-  if (!user) return null;
+  // Dagmodal
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+
+  // Filter logs in geselecteerde week
+  const weekLogs = logs.filter(
+    (l) => l.timestamp >= weekStart && l.timestamp <= weekEnd
+  );
 
   // Heatmapdata: [day][hour] = aantal keer gerookt
   const heat: Record<number, Record<number, number>> = {};
-  for (const day of DAYS.map((d) => d.key)) {
-    heat[day] = {};
-    for (const hour of HOURS) heat[day][hour] = 0;
-  }
-  for (const log of logs) {
-    const day = log.timestamp.getDay();
-    const hour = log.timestamp.getHours();
-    if (typeof heat[day]?.[hour] === "number") {
-      heat[day][hour]++;
-    }
-  }
-
-  // Voor kleurgradatie
-  const allCounts = Object.values(heat).flatMap((row) => Object.values(row));
+  DAYS.forEach((d) => {
+    heat[d.key] = {};
+    HOURS.forEach((h) => (heat[d.key][h] = 0));
+  });
+  weekLogs.forEach((log) => {
+    const d = log.timestamp.getDay();
+    const h = log.timestamp.getHours();
+    heat[d][h]++;
+  });
+  const allCounts = Object.values(heat).flatMap((r) => Object.values(r));
   const max = Math.max(1, ...allCounts);
 
-  // Blokjes-styling
-  const mobileCell = {
-    width: "18px",
-    minWidth: "12px",
-    height: "16px",
-    fontSize: "9px",
-    fontWeight: 500,
-    borderRadius: "3px",
-  };
-  const desktopCell = {
-    width: "24px",
-    minWidth: "18px",
-    height: "20px",
-    fontSize: "11px",
-    fontWeight: 500,
-    borderRadius: "4px",
-  };
-
-  function getCellStyle(count: number, isDesktop: boolean) {
-    const intensity = count === 0 ? 0 : count / max;
+  const getStyles = (count: number, isDesktop: boolean) => {
+    const intensity = count / max;
+    const light = 90 - 50 * intensity;
     return {
-      background: count
-        ? `linear-gradient(0deg, #22c55e${Math.round(80 + intensity * 120).toString(16)}, #86efac${Math.round(80 + intensity * 120).toString(16)})`
-        : "#f3f4f6",
+      backgroundColor: count ? `hsl(120,55%,${light}%)` : "#f3f4f6",
       color: intensity > 0.6 ? "#fff" : "#262626",
-      opacity: intensity === 0 ? 0.12 : 1,
-      transition: "background 0.2s",
+      width: isDesktop ? 24 : 18,
+      height: isDesktop ? 20 : 16,
+      borderRadius: isDesktop ? 4 : 3,
+      fontSize: isDesktop ? 11 : 9,
+      fontWeight: 500,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      ...(isDesktop ? desktopCell : mobileCell),
+      margin: isDesktop ? "0 2px" : "0 1px",
     };
-  }
+  };
 
-  // Min-width van de grid = label + (24 * blokje) + gap (label 24px/38px, blokje 18/24px)
-  const gridMinWidthMobile = 24 + (24 * 18) + (23 * 1.5); // ~456px
-  const gridMinWidthDesktop = 38 + (24 * 24) + (23 * 2);   // ~614px
+  const minWidthMobile = 24 + 24 * 18 + 23 * 2;
+  const minWidthDesktop = 38 + 24 * 24 + 23 * 2;
+
+  // Weeknavigatie knoppen
+  const isCurrentWeek = isSameWeek(weekStart, new Date(), { weekStartsOn: 1 });
 
   return (
-    <div className="w-full flex justify-center">
-      <Card
-        className="w-full md:max-w-fit md:min-w-[614px] mx-auto shadow bg-gradient-to-b from-green-100 to-green-200 p-2 md:p-4"
-      >
-        <div className="mb-2 font-semibold text-sm md:text-base">
-          Jouw rookpatroon per week
+    <>
+      <Card className="w-full shadow bg-gradient-to-b from-green-100 to-green-200 p-2 md:p-4 mx-auto">
+        {/* Navigatie */}
+        <div className="flex items-center justify-between mb-2">
+          <button
+            className="text-xs px-2 py-1 rounded bg-green-200 hover:bg-green-300"
+            onClick={() => setWeekStart((w) => subWeeks(w, 1))}
+          >
+            ← Vorige week
+          </button>
+          <span className="font-semibold">
+            {`Week van ${format(weekStart, "dd MMM")} t/m ${format(weekEnd, "dd MMM")}`}
+          </span>
+          <button
+            className="text-xs px-2 py-1 rounded bg-green-200 hover:bg-green-300 disabled:opacity-50"
+            onClick={() => setWeekStart((w) => addWeeks(w, 1))}
+            disabled={isCurrentWeek}
+          >
+            Volgende week →
+          </button>
         </div>
-        <div className="overflow-x-auto md:overflow-x-visible w-full">
-          <div>
-            {/* MOBILE GRID */}
-            <div
-              className="grid grid-cols-[24px_repeat(24,18px)] gap-[1.5px] md:hidden"
-              style={{ minWidth: `${gridMinWidthMobile}px` }}
-            >
-              {/* Uur labels */}
+        <div className="overflow-x-auto md:overflow-x-visible">
+          <div className="inline-block">
+            {/* Mobile */}
+            <div className="grid grid-cols-[24px_repeat(24,18px)] gap-[1px] md:hidden" style={{ minWidth: minWidthMobile }}>
               <div />
-              {HOURS.map((hour) => (
-                <div
-                  key={hour}
-                  className="text-[8px] font-mono text-center"
-                  style={{ width: 18 }}
-                >
-                  {hour.toString().padStart(2, "0")}
+              {HOURS.map((h) => (
+                <div key={h} className="text-[8px] font-mono text-center" style={{ width: 18 }}>
+                  {h.toString().padStart(2, "0")}
                 </div>
               ))}
-              {DAYS.map((d) => (
-                <div key={d.key} className="contents">
-                  <div
-                    className="text-[10px] font-semibold text-right pr-1"
-                    style={{ height: 16 }}
-                  >
-                    {d.label}
+              {DAYS.map((d, i) => {
+                const dayDate = addDays(weekStart, (d.key + 6) % 7);
+                return (
+                  <div key={d.key} className="contents">
+                    <div
+                      className="text-[10px] font-semibold text-right pr-1 cursor-pointer"
+                      style={{ height: 16 }}
+                      onClick={() => setSelectedDay(dayDate)}
+                      title="Bekijk dagoverzicht"
+                    >
+                      {d.label}
+                    </div>
+                    {HOURS.map((h) => {
+                      const cnt = heat[d.key][h];
+                      return (
+                        <div
+                          key={h}
+                          style={getStyles(cnt, false)}
+                          title={`${cnt}× op ${d.label}, ${h}:00`}
+                        >
+                          {cnt ? cnt : null}
+                        </div>
+                      );
+                    })}
                   </div>
-                  {HOURS.map((hour) => {
-                    const count = heat[d.key][hour];
-                    return (
-                      <div
-                        key={`cell-${d.key}-${hour}`}
-                        style={getCellStyle(count, false)}
-                        title={`${count}x op ${d.label}, ${hour}:00`}
-                      >
-                        {count > 0 ? count : ""}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                );
+              })}
             </div>
-            {/* DESKTOP GRID */}
-            <div
-              className="hidden md:grid grid-cols-[38px_repeat(24,24px)] gap-[2px]"
-              style={{ minWidth: `${gridMinWidthDesktop}px` }}
-            >
+            {/* Desktop */}
+            <div className="hidden md:grid grid-cols-[38px_repeat(24,24px)] gap-[2px]" style={{ minWidth: minWidthDesktop }}>
               <div />
-              {HOURS.map((hour) => (
-                <div
-                  key={hour}
-                  className="text-[10px] font-mono text-center"
-                  style={{ width: 24 }}
-                >
-                  {hour.toString().padStart(2, "0")}
+              {HOURS.map((h) => (
+                <div key={h} className="text-[10px] font-mono text-center" style={{ width: 24 }}>
+                  {h.toString().padStart(2, "0")}
                 </div>
               ))}
-              {DAYS.map((d) => (
-                <div key={d.key} className="contents">
-                  <div
-                    className="text-xs font-semibold text-right pr-1"
-                    style={{ height: 20 }}
-                  >
-                    {d.label}
+              {DAYS.map((d, i) => {
+                const dayDate = addDays(weekStart, (d.key + 6) % 7);
+                return (
+                  <div key={d.key} className="contents">
+                    <div
+                      className="text-xs font-semibold text-right pr-1 cursor-pointer"
+                      style={{ height: 20 }}
+                      onClick={() => setSelectedDay(dayDate)}
+                      title="Bekijk dagoverzicht"
+                    >
+                      {d.label}
+                    </div>
+                    {HOURS.map((h) => {
+                      const cnt = heat[d.key][h];
+                      return (
+                        <div
+                          key={h}
+                          style={getStyles(cnt, true)}
+                          title={`${cnt}× op ${d.label}, ${h}:00`}
+                        >
+                          {cnt ? cnt : null}
+                        </div>
+                      );
+                    })}
                   </div>
-                  {HOURS.map((hour) => {
-                    const count = heat[d.key][hour];
-                    return (
-                      <div
-                        key={`cell-${d.key}-${hour}`}
-                        style={getCellStyle(count, true)}
-                        title={`${count}x op ${d.label}, ${hour}:00`}
-                      >
-                        {count > 0 ? count : ""}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
-        {/* Legenda */}
         <div className="flex gap-1 items-center mt-2 text-xs">
           <span>Weinig</span>
           <div className="w-4 h-4 rounded bg-green-100"></div>
@@ -190,6 +182,14 @@ export function SmokeHeatmapResponsive() {
           <span>Veel</span>
         </div>
       </Card>
-    </div>
+      {/* Dag-modal */}
+      {selectedDay && (
+        <SmokeDayDetailModal
+          day={selectedDay}
+          logs={logs.filter((l) => isSameDay(l.timestamp, selectedDay))}
+          onClose={() => setSelectedDay(null)}
+        />
+      )}
+    </>
   );
 }

@@ -13,16 +13,14 @@ import {
   // Converter definitie
   export const smokeLogConverter: FirestoreDataConverter<SmokeLog> = {
     toFirestore(log: SmokeLog): DocumentData {
-      // destruct voor te verwijderen velden die we NIET willen opslaan
       const { id, ...rest } = log;
       return {
         ...rest,
         timestamp: Timestamp.fromDate(log.timestamp),
-        location: rest.location ?? null,
-        emotion: rest.emotion ?? null,
-        trigger: rest.trigger ?? null,
+        emotions: rest.emotions?.length ? rest.emotions : [], // altijd array
+        triggers: rest.triggers?.length ? rest.triggers : [], // altijd array
         note: rest.note ?? null,
-        // createdBy is verplicht in je model, dus deze moet altijd aanwezig zijn
+        createdBy: rest.createdBy,
       };
     },
     fromFirestore(
@@ -34,10 +32,9 @@ import {
         id: snapshot.id,
         timestamp: (data.timestamp as Timestamp).toDate(),
         createdBy: data.createdBy,
-        location: data.location ?? null,
-        emotion: data.emotion ?? null,
-        trigger: data.trigger ?? null,
-        note: data.note ?? null,
+        emotions: Array.isArray(data.emotions) ? data.emotions : [],
+        triggers: Array.isArray(data.triggers) ? data.triggers : [],
+        note: (data.note as string) ?? null,
       };
     },
   };
