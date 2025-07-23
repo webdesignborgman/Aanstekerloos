@@ -22,11 +22,28 @@ export function GoogleLoginButton({ onSuccess }: { onSuccess: () => void }) {
 
   const handleGoogleLogin = async () => {
     try {
+      console.log("Starting Google login...");
       const provider = new GoogleAuthProvider();
+      // Add scopes and custom parameters
+      provider.addScope('email');
+      provider.addScope('profile');
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      console.log("Initiating redirect...");
       await signInWithRedirect(auth, provider);
-      // Verwijder success toast en onSuccess hier - dit gebeurt na redirect
-    } catch (error) {
-      console.error("Error during redirect:", error);
+      console.log("Redirect initiated"); // This might not show due to redirect
+    } catch (error: unknown) {
+      if (typeof error === "object" && error !== null) {
+        const err = error as { code?: string; message?: string; customData?: unknown };
+        console.error("Login error details:", {
+          code: err.code,
+          message: err.message,
+          customData: err.customData
+        });
+      } else {
+        console.error("Login error details:", error);
+      }
       toast.error("Inloggen mislukt");
     }
   };

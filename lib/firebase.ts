@@ -1,6 +1,6 @@
 // lib/firebase.ts
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
+import { getAuth, type Auth, browserLocalPersistence, setPersistence } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
@@ -17,7 +17,13 @@ const firebaseConfig = {
 // Singleton pattern (voorkomt dubbele initialisatie bij hot reload)
 function createFirebaseApp(): FirebaseApp {
   if (!getApps().length) {
-    return initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    // Enable persistence
+    setPersistence(auth, browserLocalPersistence).catch((error) => {
+      console.error("Auth persistence error:", error);
+    });
+    return app;
   }
   return getApp();
 }

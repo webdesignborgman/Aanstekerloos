@@ -28,12 +28,23 @@ function DebugContent() {
   useEffect(() => {
     const checkRedirect = async () => {
       try {
+        console.log("Checking redirect result...");
         const result = await getRedirectResult(auth);
+        console.log("Redirect result:", result ? "Success" : "No result");
         if (result?.user) {
+          console.log("Logged in user:", result.user.email);
           setLastRedirect(new Date().toLocaleString());
         }
-      } catch (error) {
-        console.error("Redirect error:", error);
+      } catch (error: unknown) {
+        if (typeof error === "object" && error !== null && "code" in error && "message" in error) {
+          console.error("Redirect error details:", {
+            code: (error as { code?: string }).code,
+            message: (error as { message?: string }).message,
+            customData: (error as { customData?: unknown }).customData
+          });
+        } else {
+          console.error("Redirect error:", error);
+        }
       }
     };
     checkRedirect();
