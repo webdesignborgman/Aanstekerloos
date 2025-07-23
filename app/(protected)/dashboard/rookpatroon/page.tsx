@@ -12,6 +12,7 @@ import { smokeLogConverter } from "@/lib/converters/smokeLogConverter";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthContext";
+import { SmokeNowModal } from "@/components/smoke/SmokeNowModal";
 
 export default function RookpatroonPage() {
   const { user } = useAuth();
@@ -34,10 +35,16 @@ export default function RookpatroonPage() {
           </Link>
           <h1 className="text-2xl font-bold">Rookpatroon</h1>
         </div>
-        <p className="mb-4 text-muted-foreground text-sm">
-          Hier zie je op welke momenten van de week je het meest rookt. Handig om je gewoontes te ontdekken.
-        </p>
 
+        <div className="flex flex-col items-center mb-6">
+          <p className="mb-2 text-muted-foreground text-sm text-center max-w-xl">
+            Hier zie je op welke momenten van de week je het meest rookt. Handig om je gewoontes te ontdekken.
+          </p>
+          <div>
+            {/* CTA: Ik rook nu knop */}
+            <SmokeNowModal />
+          </div>
+        </div>
         <div className="max-w-fit md:min-w-[614px] mx-auto">
           <SmokeHeatmapResponsive logs={logs} />
 

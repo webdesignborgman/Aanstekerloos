@@ -43,6 +43,9 @@ export function UserMenu() {
         <DropdownMenuLabel>
           {displayName}
         </DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <a href="/profiel">Profiel</a>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600">
           Uitloggen
         </DropdownMenuItem>

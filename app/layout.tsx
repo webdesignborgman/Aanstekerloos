@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: "/icons/favicon.ico",
-    shortcut: "/icons/favicon.ico",
+    shortcut: "/icons/favicon-32x32.png",
     apple: "/icons/apple-touch-icon-180x180.png",
   },
   // ❗Verwijder themeColor hier, die hoort in viewport
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Fallback tags voor oudere browsers */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0d9488" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link
           rel="apple-touch-icon"

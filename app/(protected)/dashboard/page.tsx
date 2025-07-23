@@ -1,10 +1,10 @@
 "use client";
 
-import PushManager from "@/components/push/PushManager";
 import { useEffect } from "react";
-import { SmokeNowModal } from "@/components/smoke/SmokeNowModal";
 import Link from "next/link";
 import { BarChart } from "lucide-react";
+import { DashboardHero } from "@/components/dashboard/DashboardHero";
+import PushManager from "@/components/push/PushManager";
 
 export default function DashboardPage() {
   useEffect(() => {
@@ -22,15 +22,10 @@ export default function DashboardPage() {
       <main className="max-w-xl mx-auto px-2 pb-12">
         <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
 
-        {/* Push Manager: abonnement + testknop */}
-        <section className="mb-6">
-          <PushManager />
-        </section>
+        {/* Hero section met call-to-actions */}
+        <DashboardHero />
 
-        {/* Snelle logging functionaliteit */}
-        <section className="mb-6">
-          <SmokeNowModal />
-        </section>
+        {/* Push functionaliteit verwijderd van dashboard */}
 
         {/* Heatmap link naar rookpatroon */}
         <Link

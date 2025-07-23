@@ -6,7 +6,7 @@ import { addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 const EMOTIONS = ["Stress", "Verveling", "Blij", "Gewoonte", "Sociaal", "Onrustig", "Boos", "Moe"];
@@ -55,6 +55,9 @@ export function SmokeNowModal() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Vertel iets over dit moment</DialogTitle>
+            <DialogDescription>
+              Selecteer je emoties, triggers en voeg eventueel een notitie toe. Zo krijg je meer inzicht in je rookgedrag.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>

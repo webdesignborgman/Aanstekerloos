@@ -17,7 +17,7 @@ export function Header() {
     <header className="flex items-center justify-between px-6 py-4 bg-white/70 shadow-sm relative z-20">
       <Link href="/" className="flex items-center gap-2 font-bold text-xl select-none">
         <Image
-          src="/logo/apple-touch-icon.png"
+          src="/icons/apple-touch-icon.png"
           alt="Aanstekerloos logo"
           width={36}
           height={36}
@@ -28,7 +28,9 @@ export function Header() {
       </Link>
       {/* Desktop nav */}
       <nav className="hidden md:flex gap-6 items-center text-base">
-        <Link href="#uitleg" className="hover:text-orange-600">Hoe werkt het?</Link>
+        {user && (
+          <Link href="/dashboard" className="hover:text-orange-600">Dashboard</Link>
+        )}
         <Link href="#contact" className="hover:text-orange-600">Contact</Link>
         {user ? (
           <UserMenu />
@@ -63,9 +65,11 @@ export function Header() {
             >
               <X size={28} />
             </button>
-            <Link href="#uitleg" className="hover:text-orange-600 text-lg" onClick={() => setMenuOpen(false)}>
-              Hoe werkt het?
-            </Link>
+            {user && (
+              <Link href="/dashboard" className="hover:text-orange-600 text-lg" onClick={() => setMenuOpen(false)}>
+                Dashboard
+              </Link>
+            )}
             <Link href="#contact" className="hover:text-orange-600 text-lg" onClick={() => setMenuOpen(false)}>
               Contact
             </Link>
