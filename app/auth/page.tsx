@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthContext";
+import { auth } from "@/lib/firebase";
 
 function AuthPageContent() {
   const searchParams = useSearchParams();
@@ -30,6 +31,26 @@ function AuthPageContent() {
       addDebugInfo(`Auth loaded - User: ${user?.email || 'none'}`);
     }
   }, [loading, user]);
+
+  // Test redirect result directly in auth page
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        addDebugInfo("Checking redirect result...");
+        const { getRedirectResult } = await import("firebase/auth");
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          addDebugInfo(`✅ Redirect found: ${result.user.email}`);
+        } else {
+          addDebugInfo("📭 No redirect result");
+        }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        addDebugInfo(`❌ Redirect error: ${errorMessage}`);
+      }
+    };
+    checkRedirect();
+  }, []);
 
   // Als de gebruiker is ingelogd, doorsturen naar de next URL
   useEffect(() => {
