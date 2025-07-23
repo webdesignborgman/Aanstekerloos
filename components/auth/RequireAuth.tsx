@@ -11,8 +11,10 @@ function RequireAuthContent({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    console.log("RequireAuth state:", { loading, user: user?.email, pathname });
     if (!loading && !user) {
       const nextUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
+      console.log("Redirecting to auth, next URL:", nextUrl);
       router.replace(`/auth?next=${encodeURIComponent(nextUrl)}`);
     }
   }, [user, loading, pathname, searchParams, router]);

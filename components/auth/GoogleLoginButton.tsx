@@ -24,9 +24,9 @@ export function GoogleLoginButton({ onSuccess }: { onSuccess: () => void }) {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithRedirect(auth, provider);
-      toast.success("Succesvolle login!");
-      onSuccess();
-    } catch {
+      // Verwijder success toast en onSuccess hier - dit gebeurt na redirect
+    } catch (error) {
+      console.error("Error during redirect:", error);
       toast.error("Inloggen mislukt");
     }
   };
