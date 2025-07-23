@@ -3,11 +3,11 @@
 import { useAuth } from "@/components/auth/AuthContext";
 import { auth } from "@/lib/firebase";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { getRedirectResult } from "firebase/auth";
 
-export default function DebugPage() {
+function DebugContent() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -80,5 +80,13 @@ export default function DebugPage() {
         </Card>
       </div>
     </main>
+  );
+}
+
+export default function DebugPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Laden...</div>}>
+      <DebugContent />
+    </Suspense>
   );
 }
