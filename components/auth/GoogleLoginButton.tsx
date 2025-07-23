@@ -3,22 +3,38 @@
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
 import { signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { useAuth } from "./AuthContext";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "sonner";
 import { useEffect } from "react";
 
 export function GoogleLoginButton({ onSuccess }: { onSuccess: () => void }) {
+  const { user } = useAuth();
+
+  // Check for successful login
+  useEffect(() => {
+    if (user) {
+      console.log("User detected in GoogleLoginButton:", user.email);
+      toast.success("Succesvolle login!");
+      onSuccess();
+    }
+  }, [user, onSuccess]);
+
+  // Check redirect result
   useEffect(() => {
     getRedirectResult(auth).then((result) => {
       if (result) {
-        toast.success("Succesvolle login!");
-        onSuccess();
+        console.log("Redirect result successful:", result.user.email);
       }
     }).catch((error) => {
-      console.error("Error getting redirect result:", error);
+      console.error("Error getting redirect result:", {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
       toast.error("Inloggen mislukt");
     });
-  }, [onSuccess]);
+  }, []);
 
   const handleGoogleLogin = async () => {
     try {

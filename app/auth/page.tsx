@@ -11,13 +11,18 @@ function AuthPageContent() {
   const next = searchParams.get("next") || "/dashboard";
   const { user, loading } = useAuth();
 
+  // Wacht met checken van auth state tot de pagina volledig geladen is
   useEffect(() => {
-    console.log("Auth Page State:", {
-      loading,
-      isLoggedIn: !!user,
-      userEmail: user?.email,
-      nextUrl: next
-    });
+    const timeout = setTimeout(() => {
+      console.log("Auth Page State:", {
+        loading,
+        isLoggedIn: !!user,
+        userEmail: user?.email,
+        nextUrl: next,
+        currentUrl: window.location.href
+      });
+    }, 1000);
+    return () => clearTimeout(timeout);
   }, [loading, user, next]);
 
   // Als de gebruiker is ingelogd, doorsturen naar de next URL
