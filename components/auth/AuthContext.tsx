@@ -9,10 +9,12 @@ import {
 } from "react";
 import {
   onAuthStateChanged,
+  getRedirectResult,
   User,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 type AuthContextType = {
   user: User | null;
@@ -30,17 +32,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      console.log("Auth state changed:", firebaseUser ? "User logged in" : "No user");
-      if (firebaseUser) {
-        console.log("User email:", firebaseUser.email);
-        console.log("User ID:", firebaseUser.uid);
+    console.log("Setting up auth state listener...");
+    
+    // Check for redirect result first
+    getRedirectResult(auth).then((result) => {
+      if (result?.user) {
+        console.log("Redirect successful, user:", result.user.email);
+        setUser(result.user);
+        setLoading(false);
+        toast.success("Succesvol ingelogd!");
       }
+    }).catch((error) => {
+      console.error("Redirect error:", {
+        code: error.code,
+        message: error.message
+      });
+    });
+
+    // Then set up auth state listener
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log("Auth state changed:", {
+        hasUser: !!firebaseUser,
+        email: firebaseUser?.email,
+        uid: firebaseUser?.uid
+      });
       setUser(firebaseUser);
       setLoading(false);
     });
+
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
