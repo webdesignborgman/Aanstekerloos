@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
-import { signInWithRedirect, GoogleAuthProvider } from "firebase/auth";
+import { signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 import { useAuth } from "./AuthContext";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "sonner";
@@ -11,10 +11,26 @@ import { useEffect } from "react";
 export function GoogleLoginButton({ onSuccess }: { onSuccess: () => void }) {
   const { user } = useAuth();
 
+  // Check for redirect result when component mounts
+  useEffect(() => {
+    console.log("🔍 GoogleLoginButton: Checking for redirect result...");
+    getRedirectResult(auth).then((result) => {
+      if (result?.user) {
+        console.log("✅ Redirect result found:", result.user.email);
+        toast.success("Succesvol ingelogd!");
+        onSuccess();
+      } else {
+        console.log("📭 No redirect result found");
+      }
+    }).catch((error) => {
+      console.error("❌ Redirect result error:", error);
+    });
+  }, [onSuccess]);
+
   // Trigger onSuccess when user becomes available
   useEffect(() => {
     if (user) {
-      console.log("Login successful, triggering onSuccess");
+      console.log("👤 User detected, triggering onSuccess");
       onSuccess();
     }
   }, [user, onSuccess]);

@@ -20,17 +20,16 @@ function AuthPageContent() {
   // Wacht met checken van auth state tot de pagina volledig geladen is
   useEffect(() => {
     addDebugInfo(`Page loaded - Loading: ${loading}, User: ${user?.email || 'none'}`);
-    const timeout = setTimeout(() => {
-      console.log("Auth Page State:", {
-        loading,
-        isLoggedIn: !!user,
-        userEmail: user?.email,
-        nextUrl: next,
-        currentUrl: window.location.href
-      });
-    }, 1000);
-    return () => clearTimeout(timeout);
-  }, [loading, user, next]);
+  }, [loading, user]);
+
+  // Monitor auth changes separately  
+  useEffect(() => {
+    if (loading) {
+      addDebugInfo("Auth is loading...");
+    } else {
+      addDebugInfo(`Auth loaded - User: ${user?.email || 'none'}`);
+    }
+  }, [loading, user]);
 
   // Als de gebruiker is ingelogd, doorsturen naar de next URL
   useEffect(() => {
