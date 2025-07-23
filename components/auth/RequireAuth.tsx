@@ -2,9 +2,9 @@
 
 import { useAuth } from "./AuthContext";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, Suspense } from "react";
 
-export function RequireAuth({ children }: { children: ReactNode }) {
+function RequireAuthContent({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -20,4 +20,12 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (loading) return <div className="py-12 text-center">Even laden…</div>;
   if (!user) return null;
   return <>{children}</>;
+}
+
+export function RequireAuth({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<div className="py-12 text-center">Even laden…</div>}>
+      <RequireAuthContent>{children}</RequireAuthContent>
+    </Suspense>
+  );
 }
