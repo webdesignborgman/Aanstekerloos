@@ -8,12 +8,11 @@ import {
   import { SmokeLog } from "@/types/smokeLog";
   
   // Type zonder id voor lees/schrijf; id komt uit Firestore zelf
-  type SmokeLogNoID = Omit<SmokeLog, "id"> & { timestamp: Date };
   
   // Converter definitie
   export const smokeLogConverter: FirestoreDataConverter<SmokeLog> = {
     toFirestore(log: SmokeLog): DocumentData {
-      const { id, ...rest } = log;
+      const { /* id, */ ...rest } = log;
       return {
         ...rest,
         timestamp: Timestamp.fromDate(log.timestamp),

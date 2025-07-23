@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { BarChart } from "lucide-react";
 import { DashboardHero } from "@/components/dashboard/DashboardHero";
-import PushManager from "@/components/push/PushManager";
 
 export default function DashboardPage() {
   useEffect(() => {
