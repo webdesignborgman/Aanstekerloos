@@ -9,11 +9,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export default function TestPage() {
   return (
-    <RequireAuth>
     <main className="min-h-screen bg-neutralBg-50 p-8 space-y-10">
       <h1 className="text-3xl font-bold text-primary-700">Testpagina: Stijlen & Componenten</h1>
 
@@ -115,6 +113,5 @@ export default function TestPage() {
         </Dialog>
       </section>
     </main>
-    </RequireAuth>
   )
 }

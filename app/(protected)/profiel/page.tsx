@@ -11,7 +11,14 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const db = getFirestore(); // firestore instance van jouw lib
 
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  type Subscription = {
+    id: string;
+    platform?: string;
+    createdAt?: { toDate?: () => Date };
+    // Voeg hier andere velden toe indien nodig
+  };
+
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
   useEffect(() => {
     if (!user) return;

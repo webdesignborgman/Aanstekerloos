@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RequireAuth } from "@/components/auth/RequireAuth";
 import { SmokeHeatmapResponsive } from "@/components/smoke/SmokeHeatmapResponsive";
 import { SmokeWeekBarChart } from "@/components/smoke/SmokeWeekBarChart";
 import { SmokeLogList } from "@/components/smoke/SmokeLogList";
@@ -28,7 +27,6 @@ export default function RookpatroonPage() {
   }, [user]);
 
   return (
-    <RequireAuth>
       <main className="w-full max-w-5xl mx-auto px-2 pb-12">
         <div className="flex items-center gap-2 mb-4">
           <Link href="/dashboard">
@@ -54,6 +52,5 @@ export default function RookpatroonPage() {
           </section>
         </div>
       </main>
-    </RequireAuth>
   );
 }

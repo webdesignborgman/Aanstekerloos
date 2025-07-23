@@ -51,10 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(firebaseUser);
       setLoading(false);
 
-      if (firebaseUser) {
-        console.log("🚀 Redirecting naar /dashboard");
-        router.push("/dashboard");
-      }
+      // Verwijderd: automatische redirect naar /dashboard
     });
 
     return () => unsubscribe();

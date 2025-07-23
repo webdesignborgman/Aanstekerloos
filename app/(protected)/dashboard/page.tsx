@@ -1,6 +1,5 @@
 "use client";
 
-import { RequireAuth } from "@/components/auth/RequireAuth";
 import PushManager from "@/components/push/PushManager";
 import { useEffect } from "react";
 import { SmokeNowModal } from "@/components/smoke/SmokeNowModal";
@@ -20,7 +19,6 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <RequireAuth>
       <main className="max-w-xl mx-auto px-2 pb-12">
         <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
 
@@ -43,6 +41,5 @@ export default function DashboardPage() {
           Rookpatroon‑inzicht
         </Link>
       </main>
-    </RequireAuth>
   );
 }

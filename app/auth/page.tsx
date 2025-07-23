@@ -1,25 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/auth/AuthContext";
+import { useSearchParams, useRouter } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function AuthPage() {
-  const { user, loading } = useAuth();
+  const searchParams = useSearchParams();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace("/dashboard");
-    }
-  }, [user, loading, router]);
-
-  if (loading) return null; // Of een loader/spinner
+  const next = searchParams.get("next") || "/dashboard";
 
   return (
     <main className="min-h-[60vh] flex flex-col items-center justify-center py-12">
-      <LoginForm />
+      <LoginForm onSuccess={() => router.replace(next)} />
     </main>
   );
 }
