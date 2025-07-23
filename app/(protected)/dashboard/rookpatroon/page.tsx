@@ -1,7 +1,7 @@
 // app/dashboard/rookpatroon/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { SmokeHeatmapResponsive } from "@/components/smoke/SmokeHeatmapResponsive";
 import { SmokeWeekBarChart } from "@/components/smoke/SmokeWeekBarChart";
 import { SmokeLogList } from "@/components/smoke/SmokeLogList";
@@ -14,7 +14,8 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthContext";
 import { SmokeNowModal } from "@/components/smoke/SmokeNowModal";
 
-export default function RookpatroonPage() {
+
+function RookpatroonContent() {
   const { user } = useAuth();
   const [logs, setLogs] = useState<SmokeLog[]>([]);
 
@@ -28,36 +29,44 @@ export default function RookpatroonPage() {
   }, [user]);
 
   return (
-      <main className="w-full max-w-5xl mx-auto px-2 pb-12">
-        <div className="flex items-center gap-2 mb-4">
-          <Link href="/dashboard">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <h1 className="text-2xl font-bold">Rookpatroon</h1>
-        </div>
+    <main className="w-full max-w-5xl mx-auto px-2 pb-12">
+      <div className="flex items-center gap-2 mb-4">
+        <Link href="/dashboard">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <h1 className="text-2xl font-bold">Rookpatroon</h1>
+      </div>
 
-        <div className="flex flex-col items-center mb-6">
-          <p className="mb-2 text-muted-foreground text-sm text-center max-w-xl">
-            Hier zie je op welke momenten van de week je het meest rookt. Handig om je gewoontes te ontdekken.
-          </p>
-          <div>
-            {/* CTA: Ik rook nu knop */}
-            <SmokeNowModal />
-          </div>
+      <div className="flex flex-col items-center mb-6">
+        <p className="mb-2 text-muted-foreground text-sm text-center max-w-xl">
+          Hier zie je op welke momenten van de week je het meest rookt. Handig om je gewoontes te ontdekken.
+        </p>
+        <div>
+          {/* CTA: Ik rook nu knop */}
+          <SmokeNowModal />
         </div>
-        <div className="max-w-fit md:min-w-[614px] mx-auto">
-          <SmokeHeatmapResponsive logs={logs} />
+      </div>
+      <div className="max-w-fit md:min-w-[614px] mx-auto">
+        <SmokeHeatmapResponsive logs={logs} />
 
-          <section className="mt-6">
-            <h2 className="text-lg font-semibold mb-2">Aantal per dag deze week</h2>
-            <SmokeWeekBarChart logs={logs} />
-          </section>
+        <section className="mt-6">
+          <h2 className="text-lg font-semibold mb-2">Aantal per dag deze week</h2>
+          <SmokeWeekBarChart logs={logs} />
+        </section>
 
-          <section className="mt-6">
-            <h2 className="text-lg font-semibold mb-2">Jouw rooklogboek</h2>
-            <SmokeLogList logs={logs} />
-          </section>
-        </div>
-      </main>
+        <section className="mt-6">
+          <h2 className="text-lg font-semibold mb-2">Jouw rooklogboek</h2>
+          <SmokeLogList logs={logs} />
+        </section>
+      </div>
+    </main>
+  );
+}
+
+export default function RookpatroonPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RookpatroonContent />
+    </Suspense>
   );
 }
