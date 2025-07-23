@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthContext";
 
 function AuthPageContent() {
@@ -10,9 +10,16 @@ function AuthPageContent() {
   const router = useRouter();
   const next = searchParams.get("next") || "/dashboard";
   const { user, loading } = useAuth();
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+
+  // Debug logging op de pagina
+  const addDebugInfo = (info: string) => {
+    setDebugInfo((prev: string[]) => [...prev.slice(-4), `${new Date().toLocaleTimeString()}: ${info}`]);
+  };
 
   // Wacht met checken van auth state tot de pagina volledig geladen is
   useEffect(() => {
+    addDebugInfo(`Page loaded - Loading: ${loading}, User: ${user?.email || 'none'}`);
     const timeout = setTimeout(() => {
       console.log("Auth Page State:", {
         loading,
@@ -44,6 +51,13 @@ function AuthPageContent() {
           <p>Ingelogd: {user ? "Ja" : "Nee"}</p>
           {user && <p>Email: {user.email}</p>}
           <p>Volgende URL: {next}</p>
+          
+          <div className="mt-4 border-t pt-2">
+            <p className="font-semibold">Debug Log:</p>
+            {debugInfo.map((info, index) => (
+              <p key={index} className="text-xs">{info}</p>
+            ))}
+          </div>
         </div>
       </div>
     </main>
