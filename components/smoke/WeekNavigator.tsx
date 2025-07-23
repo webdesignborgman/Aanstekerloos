@@ -1,7 +1,7 @@
 // components/smoke/WeekNavigator.tsx
 "use client";
 
-import { format, addWeeks, subWeeks, isSameWeek, startOfWeek, endOfWeek } from "date-fns";
+import { format, addWeeks, subWeeks, isSameWeek, endOfWeek } from "date-fns";
 
 interface WeekNavigatorProps {
   weekStart: Date;

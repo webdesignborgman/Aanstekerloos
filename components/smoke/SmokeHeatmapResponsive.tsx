@@ -108,7 +108,7 @@ export function SmokeHeatmapResponsive({ logs }: Props) {
                   {h.toString().padStart(2, "0")}
                 </div>
               ))}
-              {DAYS.map((d, i) => {
+              {DAYS.map((d) => {
                 const dayDate = addDays(weekStart, (d.key + 6) % 7);
                 return (
                   <div key={d.key} className="contents">
@@ -144,7 +144,7 @@ export function SmokeHeatmapResponsive({ logs }: Props) {
                   {h.toString().padStart(2, "0")}
                 </div>
               ))}
-              {DAYS.map((d, i) => {
+              {DAYS.map((d) => {
                 const dayDate = addDays(weekStart, (d.key + 6) % 7);
                 return (
                   <div key={d.key} className="contents">

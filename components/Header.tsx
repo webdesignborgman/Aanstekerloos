@@ -10,7 +10,7 @@ import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Header() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -28,17 +28,19 @@ export function Header() {
       </Link>
       {/* Desktop nav */}
       <nav className="hidden md:flex gap-6 items-center text-base">
-        {user && (
+        {!loading && user && (
           <Link href="/dashboard" className="hover:text-orange-600">Dashboard</Link>
         )}
-        <Link href="#contact" className="hover:text-orange-600">Contact</Link>
-        {user ? (
+        {!loading && (
+          <Link href="#contact" className="hover:text-orange-600">Contact</Link>
+        )}
+        {!loading && (user ? (
           <UserMenu />
         ) : (
           <Button asChild>
             <Link href="/auth">Start</Link>
           </Button>
-        )}
+        ))}
       </nav>
       {/* Hamburger for mobile */}
       <button
@@ -65,15 +67,17 @@ export function Header() {
             >
               <X size={28} />
             </button>
-            {user && (
+            {!loading && user && (
               <Link href="/dashboard" className="hover:text-orange-600 text-lg" onClick={() => setMenuOpen(false)}>
                 Dashboard
               </Link>
             )}
-            <Link href="#contact" className="hover:text-orange-600 text-lg" onClick={() => setMenuOpen(false)}>
-              Contact
-            </Link>
-            {user ? (
+            {!loading && (
+              <Link href="#contact" className="hover:text-orange-600 text-lg" onClick={() => setMenuOpen(false)}>
+                Contact
+              </Link>
+            )}
+            {!loading && (user ? (
               <div onClick={() => setMenuOpen(false)}>
                 <UserMenu />
               </div>
@@ -81,7 +85,7 @@ export function Header() {
               <Button asChild className="w-full" onClick={() => setMenuOpen(false)}>
                 <Link href="/auth">Start</Link>
               </Button>
-            )}
+            ))}
           </motion.nav>
         )}
       </AnimatePresence>

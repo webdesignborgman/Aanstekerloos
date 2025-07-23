@@ -20,6 +20,7 @@ export function UserMenu() {
 
   const displayName = user.displayName || user.email || "Gebruiker";
   const photoURL = user.photoURL || undefined;
+  console.log("[UserMenu] displayName:", displayName, "photoURL:", photoURL);
 
   const handleSignOut = async () => {
     await signOut(auth);

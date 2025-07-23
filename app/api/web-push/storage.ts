@@ -1,10 +1,10 @@
 // app/api/web-push/storage.ts
-let savedSubscription: any = null;
+let savedSubscription: unknown = null;
 
-export function setSubscription(sub: any) {
+export function setSubscription(sub: unknown) {
   savedSubscription = sub;
 }
 
-export function getSubscription() {
+export function getSubscription(): unknown {
   return savedSubscription;
 }

@@ -2,10 +2,21 @@
 
 import { useAuth } from "@/components/auth/AuthContext";
 import { useEffect, useState } from "react";
-import PushManager from "@/components/push/PushManager";
+// Client-only date display to avoid hydration mismatch
+function SubscriptionDate({ createdAt }: { createdAt?: { toDate?: () => Date } }) {
+  const [date, setDate] = useState<string>("...");
+  useEffect(() => {
+    if (createdAt?.toDate) {
+      setDate(createdAt.toDate().toLocaleString());
+    } else {
+      setDate("Onbekende datum");
+    }
+  }, [createdAt]);
+  return <span className="text-xs text-gray-500">{date}</span>;
+}
 import { doc, collection, getFirestore, onSnapshot, deleteDoc } from "firebase/firestore";
 import Image from "next/image";
-import { firestore } from "@/lib/firebase";
+import PushManager from "@/components/push/PushManager";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -80,13 +91,7 @@ export default function ProfilePage() {
                     <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-semibold">
                       {sub.platform || "Apparaat"}
                     </span>
-                    <span className="text-xs text-gray-500">
-                      {typeof window !== "undefined" && sub.createdAt?.toDate
-                        ? sub.createdAt.toDate().toLocaleString()
-                        : " "}
-                      {typeof window === "undefined" && ""}
-                      {!sub.createdAt?.toDate && "Onbekende datum"}
-                    </span>
+                    <SubscriptionDate createdAt={sub.createdAt} />
                   </div>
                   <button
                     onClick={() => handleUnsubscribe(sub.id)}
