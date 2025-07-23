@@ -1,3 +1,4 @@
+"use client";
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import type { ReactNode } from 'react';
 
