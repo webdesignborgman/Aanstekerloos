@@ -28,26 +28,25 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    // Het document ID is de ge-escapete versie van het endpoint
-    const docId = endpoint.replace(/[^a-zA-Z0-9]/g, "_");
-
-    // We weten de user niet, dus we moeten alle 'users' doorzoeken.
-    // Dit is niet super efficiënt, maar de enige manier zonder de UID.
+    let deleted = false;
     const usersSnapshot = await adminDb.collection("users").get();
     for (const userDoc of usersSnapshot.docs) {
-      const subDocRef = adminDb.collection("users").doc(userDoc.id).collection("subscriptions").doc(docId);
-      const subDoc = await subDocRef.get();
-      if (subDoc.exists) {
-        await subDocRef.delete();
-        console.log(`Subscription ${endpoint} deleted for user ${userDoc.id}`);
-        return NextResponse.json({ success: true });
+      const subsSnapshot = await adminDb.collection("users").doc(userDoc.id).collection("subscriptions").get();
+      for (const subDoc of subsSnapshot.docs) {
+        const data = subDoc.data();
+        if (data.endpoint === endpoint) {
+          await subDoc.ref.delete();
+          console.log(`Subscription ${endpoint} deleted for user ${userDoc.id}`);
+          deleted = true;
+        }
       }
     }
-
-    // Als we hier komen, is het abonnement niet gevonden
-    console.log(`Subscription ${endpoint} not found in any user.`);
-    return NextResponse.json({ error: "Subscription not found" }, { status: 404 });
-
+    if (deleted) {
+      return NextResponse.json({ success: true });
+    } else {
+      console.log(`Subscription ${endpoint} not found in any user.`);
+      return NextResponse.json({ error: "Subscription not found" }, { status: 404 });
+    }
   } catch (error) {
     console.error("Error deleting subscription:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
