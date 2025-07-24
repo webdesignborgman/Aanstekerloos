@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/firebase";
-import { signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { useAuth } from "./AuthContext";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "sonner";
@@ -10,22 +10,6 @@ import { useEffect } from "react";
 
 export function GoogleLoginButton({ onSuccess }: { onSuccess: () => void }) {
   const { user } = useAuth();
-
-  // Check for redirect result when component mounts
-  useEffect(() => {
-    console.log("🔍 GoogleLoginButton: Checking for redirect result...");
-    getRedirectResult(auth).then((result) => {
-      if (result?.user) {
-        console.log("✅ Redirect result found:", result.user.email);
-        toast.success("Succesvol ingelogd!");
-        onSuccess();
-      } else {
-        console.log("📭 No redirect result found");
-      }
-    }).catch((error) => {
-      console.error("❌ Redirect result error:", error);
-    });
-  }, [onSuccess]);
 
   // Trigger onSuccess when user becomes available
   useEffect(() => {
@@ -39,22 +23,22 @@ export function GoogleLoginButton({ onSuccess }: { onSuccess: () => void }) {
     try {
       console.log("Starting Google login...");
       const provider = new GoogleAuthProvider();
-      // Add scopes and custom parameters
-      provider.addScope('email');
-      provider.addScope('profile');
+      provider.addScope("email");
+      provider.addScope("profile");
       provider.setCustomParameters({
-        prompt: 'select_account'
+        prompt: "select_account",
       });
-      console.log("Initiating redirect...");
-      await signInWithRedirect(auth, provider);
-      console.log("Redirect initiated"); // This might not show due to redirect
+      const result = await signInWithPopup(auth, provider);
+      console.log("✅ Login successful, user:", result.user.email);
+      toast.success("Succesvol ingelogd!");
+      onSuccess();
     } catch (error: unknown) {
       if (typeof error === "object" && error !== null) {
         const err = error as { code?: string; message?: string; customData?: unknown };
         console.error("Login error details:", {
           code: err.code,
           message: err.message,
-          customData: err.customData
+          customData: err.customData,
         });
       } else {
         console.error("Login error details:", error);
@@ -64,7 +48,7 @@ export function GoogleLoginButton({ onSuccess }: { onSuccess: () => void }) {
   };
 
   return (
-    <Button 
+    <Button
       type="button"
       variant="outline"
       className="w-full flex gap-2 items-center justify-center"
