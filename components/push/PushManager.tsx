@@ -5,49 +5,66 @@ import { useAuth } from "@/components/auth/AuthContext";
 import { urlBase64ToUint8Array } from "@/lib/push"; // helper om VAPID public key te decoderen
 
 export default function PushManager() {
-  const [permission, setPermission] = useState<NotificationPermission>(Notification.permission);
+  const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    // Registreer de service worker
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => console.log("📡 SW registered:", reg.scope))
-        .catch((err) => console.error("❌ SW registratie mislukte:", err));
-    }
-  }, []);
-
-  useEffect(() => {
-    // Check of er al een actieve push subscription is
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      navigator.serviceWorker.ready.then(async (reg) => {
-        const existingSub = await reg.pushManager.getSubscription();
-        if (existingSub) {
-          setIsSubscribed(true);
-        }
-      });
-    }
-  }, []);
-
-  const handleSubscribe = async () => {
-    const perm = await Notification.requestPermission();
-    console.log("Permissie:", perm);
-    setPermission(perm);
-    if (perm !== "granted") return;
-
-    if (!user) {
-      alert("Je moet ingelogd zijn om push te activeren.");
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      console.warn("Push notifications worden niet ondersteund in deze browser.");
       return;
     }
 
+    // Stel de initiële permissie status in
+    setPermission(Notification.permission);
+
+    // Registreer de service worker
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        console.log("📡 SW geregistreerd:", reg.scope);
+        // Nadat de SW klaar is, controleer op een bestaand abonnement
+        reg.pushManager.getSubscription().then((existingSub) => {
+          if (existingSub) {
+            console.log("👍 Bestaand abonnement gevonden");
+            setIsSubscribed(true);
+          } else {
+            console.log("👎 Geen bestaand abonnement gevonden");
+            setIsSubscribed(false);
+          }
+        });
+      })
+      .catch((err) => console.error("❌ SW registratie mislukt:", err));
+  }, []); // Lege dependency array zorgt ervoor dat dit eenmaal wordt uitgevoerd
+
+  const handleSubscribe = async () => {
+    console.log("handleSubscribe aangeroepen");
+    if (!user) {
+      alert("Je moet ingelogd zijn om push te activeren.");
+      console.log("Abonnement gestopt: geen gebruiker.");
+      return;
+    }
+
+    console.log("Notificatie permissie wordt gevraagd...");
+    const perm = await Notification.requestPermission();
+    console.log("Permissie resultaat:", perm);
+    setPermission(perm);
+
+    if (perm !== "granted") {
+      console.log("Abonnement gestopt: permissie niet verleend.");
+      return;
+    }
+
+    console.log("Wachten tot de service worker klaar is...");
     const reg = await navigator.serviceWorker.ready;
+    console.log("Service worker is klaar.");
+
+    console.log("Abonneren bij de push manager...");
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
     });
-    console.log("💾 Subscription object:", sub.toJSON());
+    console.log("💾 Abonnement succesvol:", sub.toJSON());
 
     // Bepaal platform info
     function getPlatformString() {
@@ -76,6 +93,26 @@ export default function PushManager() {
     console.log("Backend subscribe response:", json, res.status);
 
     setIsSubscribed(true);
+  };
+
+  const handleUnsubscribe = async () => {
+    console.log("handleUnsubscribe aangeroepen");
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+
+    if (sub) {
+      await sub.unsubscribe();
+      console.log("👋 Abonnement verwijderd uit browser");
+
+      // Stuur verzoek naar backend om abonnement te verwijderen
+      await fetch("/api/web-push/subscription", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+    }
+
+    setIsSubscribed(false);
   };
 
   const handleSendTest = async () => {
@@ -111,9 +148,15 @@ export default function PushManager() {
       )}
 
       {isSubscribed && (
-        <button onClick={handleSendTest} className="btn">
-          🚀 Verstuur test-push notificatie
-        </button>
+        <div className="space-y-2">
+          <p className="text-green-700">✅ Je bent geabonneerd op push notificaties.</p>
+          <button onClick={handleSendTest} className="btn">
+            🚀 Verstuur test-push notificatie
+          </button>
+          <button onClick={handleUnsubscribe} className="btn btn-secondary">
+            Uitschrijven
+          </button>
+        </div>
       )}
 
       {permission === "denied" && <p>❌ Permissie geweigerd</p>}
