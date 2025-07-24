@@ -7,6 +7,7 @@ import { urlBase64ToUint8Array } from "@/lib/push"; // helper om VAPID public ke
 export default function PushManager() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [currentEndpoint, setCurrentEndpoint] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -28,9 +29,11 @@ export default function PushManager() {
           if (existingSub) {
             console.log("👍 Bestaand abonnement gevonden");
             setIsSubscribed(true);
+            setCurrentEndpoint(existingSub.endpoint);
           } else {
             console.log("👎 Geen bestaand abonnement gevonden");
             setIsSubscribed(false);
+            setCurrentEndpoint(null);
           }
         });
       })
@@ -45,6 +48,19 @@ export default function PushManager() {
       return;
     }
 
+    // Probeer eerst uit te schrijven als er al een subscription is
+    const reg = await navigator.serviceWorker.ready;
+    const existingSub = await reg.pushManager.getSubscription();
+    if (existingSub) {
+      await existingSub.unsubscribe();
+      console.log("👋 Oude abonnement verwijderd uit browser (voor nieuwe inschrijving)");
+      await fetch("/api/web-push/subscription", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: existingSub.endpoint }),
+      });
+    }
+
     console.log("Notificatie permissie wordt gevraagd...");
     const perm = await Notification.requestPermission();
     console.log("Permissie resultaat:", perm);
@@ -56,7 +72,7 @@ export default function PushManager() {
     }
 
     console.log("Wachten tot de service worker klaar is...");
-    const reg = await navigator.serviceWorker.ready;
+    // const reg = await navigator.serviceWorker.ready; // al opgehaald
     console.log("Service worker is klaar.");
 
     console.log("Abonneren bij de push manager...");
@@ -65,6 +81,7 @@ export default function PushManager() {
       applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
     });
     console.log("💾 Abonnement succesvol:", sub.toJSON());
+    setCurrentEndpoint(sub.endpoint);
 
     // Bepaal platform info
     function getPlatformString() {
@@ -101,15 +118,15 @@ export default function PushManager() {
     const sub = await reg.pushManager.getSubscription();
 
     if (sub) {
+      console.log("Unsubscribe endpoint:", sub.endpoint);
       await sub.unsubscribe();
       console.log("👋 Abonnement verwijderd uit browser");
-
-      // Stuur verzoek naar backend om abonnement te verwijderen
       await fetch("/api/web-push/subscription", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpoint: sub.endpoint }),
       });
+      setCurrentEndpoint(null);
     }
 
     setIsSubscribed(false);
@@ -150,6 +167,9 @@ export default function PushManager() {
       {isSubscribed && (
         <div className="space-y-2">
           <p className="text-green-700">✅ Je bent geabonneerd op push notificaties.</p>
+          {currentEndpoint && (
+            <p className="text-xs break-all">Endpoint: {currentEndpoint}</p>
+          )}
           <button onClick={handleSendTest} className="btn">
             🚀 Verstuur test-push notificatie
           </button>
