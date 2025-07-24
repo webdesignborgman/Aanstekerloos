@@ -1,6 +1,6 @@
 // lib/firebase.ts
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
+import { getAuth, type Auth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
@@ -27,6 +27,9 @@ function createFirebaseApp(): FirebaseApp {
 const app = createFirebaseApp();
 
 export const auth: Auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error("Error setting persistence:", error);
+});
 export const firestore: Firestore = getFirestore(app);
 export const storage: FirebaseStorage = getStorage(app);
 export { firestore as db };
