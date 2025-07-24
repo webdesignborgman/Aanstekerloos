@@ -41,12 +41,35 @@ self.addEventListener("install", (event) => {
   });
   
   self.addEventListener("push", (event) => {
-    const data = event.data?.json() || { title: "Nieuw bericht", body: "Je hebt een melding!" };
+  console.log("[Service Worker] Push ontvangen.", event.data.text());
+  const data = event.data?.json() || {
+    title: "Aanstekerloos",
+    body: "Dit is een testbericht.",
+  };
+
+  const options = {
+    body: data.body,
+    icon: "/icons/android-chrome-192x192.png",
+    badge: "/icons/favicon-32x32.png", // Optioneel: voor de notificatiebalk
+    vibrate: [200, 100, 200], // Optioneel: trilpatroon
+    tag: "aanstekerloos-notificatie", // Groepeert notificaties
+    renotify: true, // Toont nieuwe notificatie ook als tag overeenkomt
+    actions: [ // Optioneel: knoppen in de notificatie
+      { action: "open_app", title: "Open App" },
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  console.log('[Service Worker] Notificatie geklikt.', event.notification.tag);
+  event.notification.close(); // Sluit de notificatie
+
+  if (event.action === 'open_app') {
     event.waitUntil(
-      self.registration.showNotification(data.title, {
-        body: data.body,
-        icon: "/icons/android-chrome-192x192.png",
-      })
+      clients.openWindow('/') // Opent de hoofdpagina van je app
     );
-  });
+  }
+});
   
