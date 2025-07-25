@@ -1,15 +1,13 @@
 /** @type {import('next').NextConfig} */
-const withPWA = require("@ducanh2912/next-pwa").default({
+import nextPwa from "@ducanh2912/next-pwa";
+
+const withPWA = nextPwa({
   dest: "public",
-  register: true,
-  skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  swcMinify: true,
   workboxOptions: {
     disableDevLogs: true,
+    importScripts: ["/sw.js"], // Importeer de custom service worker
+    skipWaiting: true,
   },
 });
 
