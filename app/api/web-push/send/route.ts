@@ -3,29 +3,48 @@ import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { adminDb } from "../firebase-admin";
 
+// Debug environment variables
+console.log("🔍 VAPID Environment Check:");
+console.log("- PUBLIC_KEY aanwezig:", !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+console.log("- PRIVATE_KEY aanwezig:", !!process.env.VAPID_PRIVATE_KEY);
+console.log("- PUBLIC_KEY length:", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.length);
+
+if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+  throw new Error("VAPID keys zijn niet geconfigureerd in environment variables");
+}
+
 webpush.setVapidDetails(
-  "mailto:your@example.com",
+  "mailto:alex.borgman@gmail.com", // Gebruik je echte email
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!
 );
 
 export async function POST(req: NextRequest) {
-  // Haal de user-id op uit de body (of uit auth context als je dat toevoegt)
-  // Voor nu: test met een hardcoded uid of stuur hem mee vanuit de frontend
+  console.log("📨 Push notification request ontvangen");
+  
   let uid: string | undefined;
   try {
     const body = await req.json();
     uid = body.uid;
+    console.log("👤 User ID:", uid);
   } catch {
-    // geen body of geen json
+    console.log("❌ Geen geldige JSON body");
+    return NextResponse.json({ error: "Ongeldige request body" }, { status: 400 });
   }
+  
   if (!uid) {
+    console.log("❌ Geen uid gevonden");
     return NextResponse.json({ error: "uid required" }, { status: 400 });
   }
+  
   // Haal alle subscriptions op voor deze user
+  console.log("🔍 Ophalen subscriptions voor user:", uid);
   const subsSnap = await adminDb.collection("users").doc(uid).collection("subscriptions").get();
   const subs = subsSnap.docs.map(doc => doc.data());
+  console.log("📋 Gevonden subscriptions:", subs.length);
+  
   if (!subs.length) {
+    console.log("❌ Geen subscriptions gevonden");
     return NextResponse.json({ error: "No subscriptions found for user" }, { status: 400 });
   }
   let success = 0, fail = 0;
