@@ -56,9 +56,16 @@ export default function PushManager() {
       const existingSub = await reg.pushManager.getSubscription();
       console.log("🔍 Checking existing subscription:", existingSub);
 
-      // Als er al een abonnement bestaat, gebruik het dan in plaats van een nieuw aan te maken.
-      if (existingSub) {
-        console.log("✅ Bestaand abonnement gevonden:", existingSub.endpoint);
+      // Als er al een FCM abonnement bestaat, verwijder het eerst
+      if (existingSub && existingSub.endpoint.includes('fcm.googleapis.com')) {
+        console.log("🗑️ Verwijderen van FCM subscription...");
+        await existingSub.unsubscribe();
+        console.log("✅ FCM subscription verwijderd");
+      }
+
+      // Als er al een geldig abonnement bestaat, gebruik het dan
+      if (existingSub && !existingSub.endpoint.includes('fcm.googleapis.com')) {
+        console.log("✅ Bestaand geldig abonnement gevonden:", existingSub.endpoint);
         setIsSubscribed(true);
         setCurrentEndpoint(existingSub.endpoint);
         
@@ -90,11 +97,17 @@ export default function PushManager() {
       }
 
       console.log("🔑 VAPID key:", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ? "✅ Aanwezig" : "❌ Ontbreekt");
+      console.log("🔑 VAPID key length:", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.length);
+      console.log("� VAPID key preview:", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.substring(0, 20) + "...");
       
-      console.log("📡 Push subscription wordt aangemaakt...");
+      // Converteer VAPID key
+      const vapidKey = urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!);
+      console.log("🔧 Converted VAPID key:", vapidKey);
+      
+      console.log("�📡 Push subscription wordt aangemaakt...");
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
+        applicationServerKey: vapidKey,
       });
       console.log("💾 Abonnement succesvol aangemaakt:", sub.toJSON());
       setCurrentEndpoint(sub.endpoint);
@@ -141,13 +154,33 @@ export default function PushManager() {
       alert("Je moet ingelogd zijn om een test push te sturen.");
       return;
     }
-    const res = await fetch("/api/web-push/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uid: user.uid }),
-    });
-    const json = await res.json();
-    console.log("Backend send-push response:", json);
+    
+    try {
+      console.log("🚀 Versturen test push...");
+      const res = await fetch("/api/web-push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: user.uid }),
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Backend error: ${res.status} ${res.statusText}`);
+      }
+      
+      const json = await res.json();
+      console.log("✅ Backend send-push response:", json);
+      
+      if (json.success > 0) {
+        console.log(`🎉 ${json.success} notificatie(s) verzonden!`);
+        alert(`✅ ${json.success} notificatie(s) verzonden! Check je notificaties.`);
+      } else {
+        console.log("❌ Geen notificaties verzonden:", json);
+        alert("❌ Geen notificaties verzonden. Check de console voor details.");
+      }
+    } catch (error) {
+      console.error("❌ Error sending test push:", error);
+      alert(`Er is een fout opgetreden: ${error instanceof Error ? error.message : String(error)}`);
+    }
   };
 
   return (
