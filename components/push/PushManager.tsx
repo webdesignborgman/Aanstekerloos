@@ -48,17 +48,15 @@ export default function PushManager() {
       return;
     }
 
-    // Probeer eerst uit te schrijven als er al een subscription is
     const reg = await navigator.serviceWorker.ready;
     const existingSub = await reg.pushManager.getSubscription();
+
+    // Als er al een abonnement bestaat, gebruik het dan in plaats van een nieuw aan te maken.
     if (existingSub) {
-      await existingSub.unsubscribe();
-      console.log("👋 Oude abonnement verwijderd uit browser (voor nieuwe inschrijving)");
-      await fetch("/api/web-push/subscription", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: existingSub.endpoint }),
-      });
+      console.log("Bestaand abonnement gevonden:", existingSub.endpoint);
+      setIsSubscribed(true);
+      setCurrentEndpoint(existingSub.endpoint);
+      return;
     }
 
     console.log("Notificatie permissie wordt gevraagd...");
@@ -71,16 +69,12 @@ export default function PushManager() {
       return;
     }
 
-    console.log("Wachten tot de service worker klaar is...");
-    // const reg = await navigator.serviceWorker.ready; // al opgehaald
     console.log("Service worker is klaar.");
-
-    console.log("Abonneren bij de push manager...");
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
     });
-    console.log("💾 Abonnement succesvol:", sub.toJSON());
+    console.log("💾 Abonnement succesvol aangemaakt:", sub.toJSON());
     setCurrentEndpoint(sub.endpoint);
 
     // Bepaal platform info
@@ -95,42 +89,20 @@ export default function PushManager() {
     }
     const platform = getPlatformString();
     const createdAt = new Date().toISOString();
-    // Verstuur de subscription naar je backend, inclusief user id, platform en datum
+
     const res = await fetch("/api/web-push/subscription", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ subscription: sub.toJSON(), uid: user.uid, platform, createdAt }),
     });
-    let json = null;
-    try {
-      json = await res.json();
-    } catch (e) {
+    const json = await res.json().catch((e) => {
       console.error("Kon geen geldige JSON parsen van backend:", e);
-    }
+    });
     console.log("Backend subscribe response:", json, res.status);
-
     setIsSubscribed(true);
   };
 
-  const handleUnsubscribe = async () => {
-    console.log("handleUnsubscribe aangeroepen");
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
 
-    if (sub) {
-      console.log("Unsubscribe endpoint:", sub.endpoint);
-      await sub.unsubscribe();
-      console.log("👋 Abonnement verwijderd uit browser");
-      await fetch("/api/web-push/subscription", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ endpoint: sub.endpoint }),
-      });
-      setCurrentEndpoint(null);
-    }
-
-    setIsSubscribed(false);
-  };
 
   const handleSendTest = async () => {
     if (!user) {
@@ -170,11 +142,8 @@ export default function PushManager() {
           {currentEndpoint && (
             <p className="text-xs break-all">Endpoint: {currentEndpoint}</p>
           )}
-          <button onClick={handleSendTest} className="btn">
+          <button type="button" onClick={handleSendTest} className="btn">
             🚀 Verstuur test-push notificatie
-          </button>
-          <button onClick={handleUnsubscribe} className="btn btn-secondary">
-            Uitschrijven
           </button>
         </div>
       )}
