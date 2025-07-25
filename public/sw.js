@@ -41,14 +41,16 @@ self.addEventListener("install", (event) => {
   });
   
   self.addEventListener("push", (event) => {
-  console.log("[Service Worker] Push ontvangen.", event.data.text());
-  const data = event.data?.json() || {
-    title: "Aanstekerloos",
-    body: "Dit is een testbericht.",
-  };
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    console.warn("Push payload kon niet als JSON worden geparsed, fallback gebruikt.", e);
+    data = { title: "Aanstekerloos", body: "Je hebt een nieuw bericht." };
+  }
 
   const options = {
-    body: data.body,
+    body: data.body || "Je hebt een nieuw bericht.",
     icon: "/icons/android-chrome-192x192.png",
     badge: "/icons/favicon-32x32.png", // Optioneel: voor de notificatiebalk
     vibrate: [200, 100, 200], // Optioneel: trilpatroon
