@@ -41,66 +41,98 @@ export default function PushManager() {
   }, []); // Lege dependency array zorgt ervoor dat dit eenmaal wordt uitgevoerd
 
   const handleSubscribe = async () => {
-    console.log("handleSubscribe aangeroepen");
+    console.log("🚀 handleSubscribe aangeroepen");
     if (!user) {
       alert("Je moet ingelogd zijn om push te activeren.");
-      console.log("Abonnement gestopt: geen gebruiker.");
+      console.log("❌ Abonnement gestopt: geen gebruiker.");
       return;
     }
 
-    const reg = await navigator.serviceWorker.ready;
-    const existingSub = await reg.pushManager.getSubscription();
+    try {
+      console.log("⏳ Service worker wordt opgehaald...");
+      const reg = await navigator.serviceWorker.ready;
+      console.log("✅ Service worker klaar:", reg);
+      
+      const existingSub = await reg.pushManager.getSubscription();
+      console.log("🔍 Checking existing subscription:", existingSub);
 
-    // Als er al een abonnement bestaat, gebruik het dan in plaats van een nieuw aan te maken.
-    if (existingSub) {
-      console.log("Bestaand abonnement gevonden:", existingSub.endpoint);
+      // Als er al een abonnement bestaat, gebruik het dan in plaats van een nieuw aan te maken.
+      if (existingSub) {
+        console.log("✅ Bestaand abonnement gevonden:", existingSub.endpoint);
+        setIsSubscribed(true);
+        setCurrentEndpoint(existingSub.endpoint);
+        
+        // Ook doorsturen naar backend als het nog niet bestaat
+        const platform = getPlatformString();
+        const createdAt = new Date().toISOString();
+        try {
+          const res = await fetch("/api/web-push/subscription", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subscription: existingSub.toJSON(), uid: user.uid, platform, createdAt }),
+          });
+          const json = await res.json();
+          console.log("📤 Existing subscription sent to backend:", json);
+        } catch (e) {
+          console.error("❌ Failed to send existing subscription to backend:", e);
+        }
+        return;
+      }
+
+      console.log("📝 Notificatie permissie wordt gevraagd...");
+      const perm = await Notification.requestPermission();
+      console.log("🔔 Permissie resultaat:", perm);
+      setPermission(perm);
+
+      if (perm !== "granted") {
+        console.log("❌ Abonnement gestopt: permissie niet verleend.");
+        return;
+      }
+
+      console.log("🔑 VAPID key:", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ? "✅ Aanwezig" : "❌ Ontbreekt");
+      
+      console.log("📡 Push subscription wordt aangemaakt...");
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
+      });
+      console.log("💾 Abonnement succesvol aangemaakt:", sub.toJSON());
+      setCurrentEndpoint(sub.endpoint);
+
+      // Bepaal platform info
+      const platform = getPlatformString();
+      const createdAt = new Date().toISOString();
+
+      console.log("📤 Versturen naar backend...");
+      const res = await fetch("/api/web-push/subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: sub.toJSON(), uid: user.uid, platform, createdAt }),
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Backend error: ${res.status} ${res.statusText}`);
+      }
+      
+      const json = await res.json();
+      console.log("✅ Backend subscribe response:", json, res.status);
       setIsSubscribed(true);
-      setCurrentEndpoint(existingSub.endpoint);
-      return;
+    } catch (error) {
+      console.error("❌ Error in handleSubscribe:", error);
+      alert(`Er is een fout opgetreden: ${error instanceof Error ? error.message : String(error)}`);
     }
-
-    console.log("Notificatie permissie wordt gevraagd...");
-    const perm = await Notification.requestPermission();
-    console.log("Permissie resultaat:", perm);
-    setPermission(perm);
-
-    if (perm !== "granted") {
-      console.log("Abonnement gestopt: permissie niet verleend.");
-      return;
-    }
-
-    console.log("Service worker is klaar.");
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
-    });
-    console.log("💾 Abonnement succesvol aangemaakt:", sub.toJSON());
-    setCurrentEndpoint(sub.endpoint);
-
-    // Bepaal platform info
-    function getPlatformString() {
-      const ua = navigator.userAgent;
-      if (/android/i.test(ua)) return "Android";
-      if (/iPad|iPhone|iPod/.test(ua)) return "iOS";
-      if (/Win/.test(ua)) return "Windows";
-      if (/Mac/.test(ua)) return "MacOS";
-      if (/Linux/.test(ua)) return "Linux";
-      return "Onbekend";
-    }
-    const platform = getPlatformString();
-    const createdAt = new Date().toISOString();
-
-    const res = await fetch("/api/web-push/subscription", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subscription: sub.toJSON(), uid: user.uid, platform, createdAt }),
-    });
-    const json = await res.json().catch((e) => {
-      console.error("Kon geen geldige JSON parsen van backend:", e);
-    });
-    console.log("Backend subscribe response:", json, res.status);
-    setIsSubscribed(true);
   };
+
+  // Bepaal platform info
+  function getPlatformString() {
+    const ua = navigator.userAgent;
+    if (/android/i.test(ua)) return "Android";
+    if (/iPad|iPhone|iPod/.test(ua)) return "iOS";
+    if (/Win/.test(ua)) return "Windows";
+    if (/Mac/.test(ua)) return "MacOS";
+    if (/Linux/.test(ua)) return "Linux";
+    return "Onbekend";
+  }
 
 
 
