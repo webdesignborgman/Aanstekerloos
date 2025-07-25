@@ -125,13 +125,47 @@ export default function PushManager() {
       </p>
 
       {permission === "default" && !isSubscribed && (
-        <button onClick={handleSubscribe} className="btn">
+        <button 
+          onClick={handleSubscribe} 
+          onTouchStart={() => {}} // iOS Safari PWA fix
+          style={{
+            backgroundColor: '#0d9488',
+            color: 'white',
+            padding: '12px 20px',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            width: '100%',
+            marginTop: '8px',
+            WebkitTapHighlightColor: 'rgba(0,0,0,0.1)', // iOS tap feedback
+            touchAction: 'manipulation' // Prevent double-tap zoom
+          }}
+        >
           Activeer Push Notifications
         </button>
       )}
 
       {permission === "granted" && !isSubscribed && (
-        <button onClick={handleSubscribe} className="btn">
+        <button 
+          onClick={handleSubscribe} 
+          onTouchStart={() => {}} // iOS Safari PWA fix
+          style={{
+            backgroundColor: '#0d9488',
+            color: 'white',
+            padding: '12px 20px',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            width: '100%',
+            marginTop: '8px',
+            WebkitTapHighlightColor: 'rgba(0,0,0,0.1)', // iOS tap feedback
+            touchAction: 'manipulation' // Prevent double-tap zoom
+          }}
+        >
           ✅ Abonneer voor Push Notifications
         </button>
       )}
@@ -142,7 +176,25 @@ export default function PushManager() {
           {currentEndpoint && (
             <p className="text-xs break-all">Endpoint: {currentEndpoint}</p>
           )}
-          <button type="button" onClick={handleSendTest} className="btn">
+          <button 
+            type="button" 
+            onClick={handleSendTest} 
+            onTouchStart={() => {}} // iOS Safari PWA fix
+            style={{
+              backgroundColor: '#0d9488',
+              color: 'white',
+              padding: '12px 20px',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              width: '100%',
+              marginTop: '8px',
+              WebkitTapHighlightColor: 'rgba(0,0,0,0.1)', // iOS tap feedback
+              touchAction: 'manipulation' // Prevent double-tap zoom
+            }}
+          >
             🚀 Verstuur test-push notificatie
           </button>
         </div>
