@@ -32,14 +32,29 @@ export async function POST(req: NextRequest) {
   for (const sub of subs) {
     // Check minimaal op endpoint en keys
     if (!sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+      console.log("Invalid subscription format:", sub);
       fail++;
       continue;
     }
     try {
-      await webpush.sendNotification(sub as webpush.PushSubscription, JSON.stringify({ title: "Testmelding", body: "Je push-notificatie werkt!" }));
+      const payload = JSON.stringify({ 
+        title: "Aanstekerloos", 
+        body: "Je push-notificatie werkt!" 
+      });
+      
+      const options = {
+        TTL: 3600, // Time to live in seconds (1 hour)
+        headers: {
+          'Urgency': 'normal'
+        }
+      };
+      
+      console.log("Sending push to:", sub.endpoint.substring(0, 50) + "...");
+      await webpush.sendNotification(sub as webpush.PushSubscription, payload, options);
+      console.log("Push sent successfully to:", sub.endpoint.substring(0, 50) + "...");
       success++;
     } catch (err) {
-      console.error("Push error:", err);
+      console.error("Push error for endpoint:", sub.endpoint.substring(0, 50) + "...", err);
       fail++;
     }
   }
