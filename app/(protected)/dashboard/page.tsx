@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
-import { BarChart } from "lucide-react";
 import { DashboardHero } from "@/components/dashboard/DashboardHero";
+import OnboardingIntroCard from "@/components/onboarding/OnboardingIntroCard";
 
 export default function DashboardPage() {
   useEffect(() => {
@@ -24,16 +23,7 @@ export default function DashboardPage() {
         {/* Hero section met call-to-actions */}
         <DashboardHero />
 
-        {/* Push functionaliteit verwijderd van dashboard */}
-
-        {/* Heatmap link naar rookpatroon */}
-        <Link
-          href="/dashboard/rookpatroon"
-          className="inline-flex items-center gap-1 underline text-accent-600 hover:text-accent-700"
-        >
-          <BarChart className="h-4 w-4" />
-          Rookpatroon‑inzicht
-        </Link>
+        <OnboardingIntroCard />
       </main>
   );
 }

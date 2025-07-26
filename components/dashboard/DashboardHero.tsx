@@ -18,6 +18,17 @@ export function DashboardHero() {
           <Link href="/dashboard/stoppen">Ik stop nu!</Link>
         </Button>
       </div>
+      {/* Rookpatroon inzicht link gecentreerd onder de knoppen */}
+      <div className="flex justify-center mt-4">
+        <Link
+          href="/dashboard/rookpatroon"
+          className="inline-flex items-center gap-1 underline text-accent-600 hover:text-accent-700"
+        >
+          {/* BarChart icon importeren uit lucide-react */}
+          <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18" /><rect x="7" y="13" width="3" height="5" rx="1" /><rect x="12" y="8" width="3" height="10" rx="1" /><rect x="17" y="5" width="3" height="13" rx="1" /></svg>
+          Rookpatroon‑inzicht
+        </Link>
+      </div>
     </section>
   );
 }
