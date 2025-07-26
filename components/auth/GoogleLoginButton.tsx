@@ -14,22 +14,21 @@ export function GoogleLoginButton({ onSuccess }: { onSuccess: () => void }) {
   // Trigger onSuccess when user becomes available
   useEffect(() => {
     if (user) {
-      console.log("👤 User detected, triggering onSuccess");
+      // User detected, triggering onSuccess
       onSuccess();
     }
   }, [user, onSuccess]);
 
   const handleGoogleLogin = async () => {
     try {
-      console.log("Starting Google login...");
+      // Starting Google login...
       const provider = new GoogleAuthProvider();
       provider.addScope("email");
       provider.addScope("profile");
       provider.setCustomParameters({
         prompt: "select_account",
       });
-      const result = await signInWithPopup(auth, provider);
-      console.log("✅ Login successful, user:", result.user.email);
+      await signInWithPopup(auth, provider);
       toast.success("Succesvol ingelogd!");
       onSuccess();
     } catch (error: unknown) {

@@ -57,7 +57,7 @@ export default function PushManager() {
     navigator.serviceWorker
       .register("/sw.js")
       .then((reg) => {
-        console.log("📡 SW geregistreerd:", reg.scope);
+        // SW geregistreerd: reg.scope
         // Controleer op bestaande subscription
         reg.pushManager.getSubscription().then((existingSub) => {
           if (existingSub) {
@@ -121,7 +121,7 @@ export default function PushManager() {
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== "granted") {
-      console.log("❌ Abonnement gestopt: permissie niet verleend.");
+      // ❌ Abonnement gestopt: permissie niet verleend.
         return;
       }
 
