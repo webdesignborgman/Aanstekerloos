@@ -1,13 +1,17 @@
 /** @type {import('next').NextConfig} */
-import nextPwa from "@ducanh2912/next-pwa";
+import nextPwa from '@ducanh2912/next-pwa';
 
 const withPWA = nextPwa({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
+  dest: 'public',
+  // Schakel PWA alleen uit in development
+  disable: process.env.NODE_ENV === 'development',
   workboxOptions: {
-    disableDevLogs: true,
-    importScripts: ["/sw.js"], // Importeer de custom service worker
+    // Import je eigen SW-bestand met push-event-handlers
+    importScripts: ['/custom-sw.js'],
     skipWaiting: true,
+    clientsClaim: true,
+    // andere opties blijven ongewijzigd
+    disableDevLogs: true,
   },
 });
 
@@ -16,16 +20,16 @@ const nextConfig = withPWA({
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-        port: "",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/**',
       },
       {
-        protocol: "https",
-        hostname: "**.googleusercontent.com",
-        port: "",
-        pathname: "/**",
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
+        port: '',
+        pathname: '/**',
       },
     ],
   },
