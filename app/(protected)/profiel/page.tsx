@@ -17,6 +17,7 @@ function SubscriptionDate({ createdAt }: { createdAt?: { toDate?: () => Date } }
 import { doc, collection, getFirestore, onSnapshot, deleteDoc } from "firebase/firestore";
 import Image from "next/image";
 import PushManager from "@/components/push/PushManager";
+import { ExportLogsButton } from "@/components/smoke/ExportLogsButton";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -79,30 +80,33 @@ export default function ProfilePage() {
         <PushManager />
 
         {subscriptions.length > 0 && (
-          <div className="mt-4">
-            <h4 className="font-medium mb-2">Aangesloten apparaten:</h4>
-            <ul className="space-y-2">
-              {subscriptions.map((sub) => (
-                <li
-                  key={sub.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-50 rounded px-3 py-2 border border-gray-200 shadow-sm"
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-semibold">
-                      {sub.platform || "Apparaat"}
-                    </span>
-                    <SubscriptionDate createdAt={sub.createdAt} />
-                  </div>
-                  <button
-                    onClick={() => handleUnsubscribe(sub.id)}
-                    className="text-red-500 hover:underline mt-2 sm:mt-0 sm:ml-4 text-sm font-medium"
+          <>
+            <div className="mt-4">
+              <h4 className="font-medium mb-2">Aangesloten apparaten:</h4>
+              <ul className="space-y-2">
+                {subscriptions.map((sub) => (
+                  <li
+                    key={sub.id}
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-50 rounded px-3 py-2 border border-gray-200 shadow-sm"
                   >
-                    Uitschrijven
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-semibold">
+                        {sub.platform || "Apparaat"}
+                      </span>
+                      <SubscriptionDate createdAt={sub.createdAt} />
+                    </div>
+                    <button
+                      onClick={() => handleUnsubscribe(sub.id)}
+                      className="text-red-500 hover:underline mt-2 sm:mt-0 sm:ml-4 text-sm font-medium"
+                    >
+                      Uitschrijven
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <ExportLogsButton />
+          </>
         )}
       </section>
     </main>

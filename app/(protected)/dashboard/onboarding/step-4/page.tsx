@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, getDocs, collection } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection } from "firebase/firestore";
 import { useAuth } from "@/components/auth/AuthContext";
 import { OnboardingStepProgressBar } from "@/components/onboarding/OnboardingStepProgressBar";
 
@@ -24,30 +24,30 @@ export default function TriggersStepPage() {
   const { user } = useAuth();
   const [selected, setSelected] = useState<string[]>([]);
   const [customTrigger, setCustomTrigger] = useState("");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
 
-  // Redirect als user niet ingelogd
+  // Data laden uit Firestore
   useEffect(() => {
     if (user === undefined) return;
-    if (!user) {
-      router.push("/login");
-    }
-  }, [user, router]);
-
-  // Voortgang ophalen als user er is
-  useEffect(() => {
     if (!user) return;
-    const fetchCompletedSteps = async () => {
-      const snap = await getDocs(collection(db, "users", user.uid, "onboarding"));
-      setCompletedSteps(snap.size);
-    };
-    fetchCompletedSteps();
+    async function fetchData() {
+      if (!user) return;
+      const snap = await getDoc(doc(db, "users", user.uid, "onboarding", "triggers"));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (Array.isArray(data.moments)) setSelected(data.moments);
+      }
+      const stepsSnap = await getDocs(collection(db, "users", user.uid, "onboarding"));
+      setCompletedSteps(stepsSnap.size);
+      setLoading(false);
+    }
+    fetchData();
   }, [user]);
 
-  const currentStep = 3; // step-4 = index 3
+  const currentStep = 3;
 
-  // Toevoegen custom trigger
   function addCustomTrigger() {
     if (customTrigger.trim().length === 0) return;
     setSelected((prev) =>
@@ -58,7 +58,6 @@ export default function TriggersStepPage() {
     setCustomTrigger("");
   }
 
-  // Checkbox toggle
   function toggleTrigger(trigger: string) {
     setSelected((prev) =>
       prev.includes(trigger)
@@ -67,7 +66,6 @@ export default function TriggersStepPage() {
     );
   }
 
-  // Opslaan
   async function handleSave() {
     if (!user) return;
     setSaving(true);
@@ -84,7 +82,7 @@ export default function TriggersStepPage() {
     router.push("/dashboard/onboarding/step-5");
   }
 
-  if (user === undefined) {
+  if (user === undefined || loading) {
     return (
       <div className="flex items-center justify-center h-40 text-neutral-400 text-lg">
         Laden...
@@ -125,7 +123,6 @@ export default function TriggersStepPage() {
           ))}
         </div>
 
-        {/* Zelf toevoegen */}
         <div className="flex items-center gap-2 mb-4">
           <Input
             value={customTrigger}
@@ -149,7 +146,6 @@ export default function TriggersStepPage() {
           </Button>
         </div>
 
-        {/* Gekozen triggers */}
         {selected.length > 0 && (
           <div className="mb-2 text-sm text-orange-700">
             <strong>Geselecteerd:</strong>{" "}

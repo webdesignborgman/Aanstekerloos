@@ -1,8 +1,9 @@
+// components/smoke/SmokeLogList.tsx
 "use client";
 
 import { useState } from "react";
 import { SmokeLog } from "@/types/smokeLog";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthContext";
@@ -20,6 +21,7 @@ const EMOTIONS = [
 const TRIGGERS = [
   "Na eten", "Koffie", "Werk", "Auto", "Pauze", "Alcohol", "Met vrienden", "TV", "Ochtend", "Avond"
 ];
+const LOCATIONS = ["Keuken", "Wc", "Buiten", "Tuin", "Werk", "Anders"];
 
 interface Props {
   logs: SmokeLog[];
@@ -31,12 +33,24 @@ export function SmokeLogList({ logs }: Props) {
   const [editState, setEditState] = useState<Partial<SmokeLog>>({});
   const [deleteCandidate, setDeleteCandidate] = useState<SmokeLog | null>(null);
 
+  const isFirstLogOfToday = (log: SmokeLog) => {
+    return !logs.some(
+      (l) =>
+        l.id !== log.id &&
+        isSameDay(l.timestamp, log.timestamp) &&
+        l.timestamp < log.timestamp
+    );
+  };
+
   const startEdit = (log: SmokeLog) => {
     setEditId(log.id);
     setEditState({
       emotions: [...(log.emotions || [])],
       triggers: [...(log.triggers || [])],
-      note: log.note ?? ""
+      note: log.note ?? "",
+      urgency: log.urgency ?? undefined,
+      isWorkday: log.isWorkday ?? false,
+      location: log.location ?? "",
     });
   };
 
@@ -51,7 +65,10 @@ export function SmokeLogList({ logs }: Props) {
     await updateDoc(ref, {
       emotions: editState.emotions ?? [],
       triggers: editState.triggers ?? [],
-      note: editState.note ?? ""
+      note: editState.note ?? "",
+      urgency: editState.urgency ?? null,
+      isWorkday: editState.isWorkday ?? null,
+      location: editState.location ?? "",
     });
     setEditId(null);
     setEditState({});
@@ -108,6 +125,58 @@ export function SmokeLogList({ logs }: Props) {
                   placeholder="Notitie..."
                   maxLength={120}
                 />
+                <div className="flex gap-2 items-center text-xs mt-1">
+                  <label className="w-28 shrink-0" htmlFor="urgency">Noodzaak (1–10):</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    id="urgency"
+                    value={editState.urgency ?? ""}
+                    onChange={(e) => setEditState(s => ({ ...s, urgency: parseInt(e.target.value) }))}
+                    className="border rounded p-1 w-16"
+                  />
+                </div>
+                {isFirstLogOfToday(l) && (
+                  <div className="flex gap-2 items-center text-xs mt-1">
+                    <input
+                      type="checkbox"
+                      id="isWorkday"
+                      checked={editState.isWorkday ?? false}
+                      onChange={(e) => setEditState(s => ({ ...s, isWorkday: e.target.checked }))}
+                    />
+                    <label htmlFor="isWorkday">Werkdag?</label>
+                  </div>
+                )}
+                <div className="flex gap-2 items-center text-xs mt-1">
+                  <label className="w-28 shrink-0" htmlFor="location">Locatie:</label>
+                  <select
+                    id="location"
+                    value={LOCATIONS.includes(editState.location || "") ? editState.location || "" : "Anders"}
+
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setEditState((s) => ({
+                        ...s,
+                        location: value === "Anders" ? "" : value,
+                      }));
+                    }}
+                    className="border rounded p-1"
+                  >
+                    {LOCATIONS.map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                  {(!LOCATIONS.includes(editState.location ?? "") || editState.location === "Anders") && (
+                    <input
+                      type="text"
+                      className="border rounded p-1 text-xs"
+                      placeholder="Eigen locatie..."
+                      value={editState.location ?? ""}
+                      onChange={(e) => setEditState(s => ({ ...s, location: e.target.value }))}
+                    />
+                  )}
+                </div>
                 <div className="flex gap-2 mt-1">
                   <Button type="submit" size="sm" className="h-7 px-2 py-1">Opslaan</Button>
                   <Button type="button" size="sm" variant="ghost" className="h-7 px-2 py-1" onClick={cancelEdit}>
@@ -127,6 +196,11 @@ export function SmokeLogList({ logs }: Props) {
                   ))}
                 </div>
                 {l.note && <div className="text-xs text-muted-foreground italic">{l.note}</div>}
+                <div className="text-xs text-muted-foreground mt-1">
+                  {l.urgency && <>🔸 Noodzaak: <strong>{l.urgency}/10</strong><br /></>}
+                  {l.isWorkday !== undefined && <>📅 Werkdag: {l.isWorkday ? "Ja" : "Nee"}<br /></>}
+                  {l.location && <>📍 Locatie: {l.location}</>}
+                </div>
               </div>
             )}
             <div className="flex gap-1 items-center ml-2 shrink-0">
@@ -154,7 +228,6 @@ export function SmokeLogList({ logs }: Props) {
           </div>
         ))}
       </div>
-      {/* Confirm dialog */}
       <Dialog open={!!deleteCandidate} onOpenChange={v => !v && setDeleteCandidate(null)}>
         <DialogContent>
           <DialogHeader>

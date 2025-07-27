@@ -4,38 +4,42 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, getDocs, collection } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection } from "firebase/firestore";
 import { useAuth } from "@/components/auth/AuthContext";
 import { OnboardingStepProgressBar } from "@/components/onboarding/OnboardingStepProgressBar";
 
 export default function MotivatieStepPage() {
   const router = useRouter();
-  const { user } = useAuth(); // user: User | null
+  const { user } = useAuth();
   const [reasons, setReasons] = useState<string>("");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
 
-  // 1. Redirect als user niet ingelogd (TypeScript-safe)
+  // Haal bestaande motivatie uit Firestore
   useEffect(() => {
     if (user === undefined) return;
-    if (!user) {
-      router.push("/login");
-    }
-  }, [user, router]);
-
-  // 2. Voortgang ophalen als user er is
-  useEffect(() => {
     if (!user) return;
-    const fetchCompletedSteps = async () => {
+    async function fetchMotivatie() {
+      if (!user) return;
+      // Haal bestaande motivatie op:
+      const motivatieSnap = await getDoc(doc(db, "users", user.uid, "onboarding", "motivatie"));
+      if (motivatieSnap.exists()) {
+        const data = motivatieSnap.data();
+        if (Array.isArray(data.reasons)) {
+          setReasons(data.reasons.join("\n"));
+        }
+      }
+      // Ook bestaande voortgang ophalen:
       const snap = await getDocs(collection(db, "users", user.uid, "onboarding"));
       setCompletedSteps(snap.size);
-    };
-    fetchCompletedSteps();
+      setLoading(false);
+    }
+    fetchMotivatie();
   }, [user]);
 
   const currentStep = 0;
 
-  // 3. Opslaan, user check vóór elk gebruik!
   async function handleSave() {
     if (!user) return;
     setSaving(true);
@@ -52,7 +56,7 @@ export default function MotivatieStepPage() {
     router.push("/dashboard/onboarding/step-2");
   }
 
-  if (user === undefined) {
+  if (user === undefined || loading) {
     return (
       <div className="flex items-center justify-center h-40 text-neutral-400 text-lg">
         Laden...

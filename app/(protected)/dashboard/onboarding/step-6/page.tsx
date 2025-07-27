@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, getDocs, collection } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection } from "firebase/firestore";
 import { useAuth } from "@/components/auth/AuthContext";
 import { OnboardingStepProgressBar } from "@/components/onboarding/OnboardingStepProgressBar";
 
@@ -17,30 +17,34 @@ export default function SteunStepPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [buddies, setBuddies] = useState<Buddy[]>([{ naam: "", telefoon: "" }]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
 
-  // Redirect als user niet ingelogd
   useEffect(() => {
     if (user === undefined) return;
-    if (!user) {
-      router.push("/login");
-    }
-  }, [user, router]);
-
-  // Voortgang ophalen als user er is
-  useEffect(() => {
     if (!user) return;
-    const fetchCompletedSteps = async () => {
-      const snap = await getDocs(collection(db, "users", user.uid, "onboarding"));
-      setCompletedSteps(snap.size);
-    };
-    fetchCompletedSteps();
+    async function fetchData() {
+      if (!user) return;
+      const snap = await getDoc(doc(db, "users", user.uid, "onboarding", "steun"));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (Array.isArray(data.buddies) && data.buddies.length > 0) {
+          setBuddies(data.buddies.map((b: Buddy) => ({
+            naam: b.naam || "",
+            telefoon: b.telefoon || ""
+          })));
+        }
+      }
+      const stepsSnap = await getDocs(collection(db, "users", user.uid, "onboarding"));
+      setCompletedSteps(stepsSnap.size);
+      setLoading(false);
+    }
+    fetchData();
   }, [user]);
 
-  const currentStep = 5; // step-6 = index 5
+  const currentStep = 5;
 
-  // Opslaan
   async function handleSave() {
     if (!user) return;
     setSaving(true);
@@ -81,10 +85,9 @@ export default function SteunStepPage() {
     setBuddies((prev) => prev.length === 1 ? prev : prev.filter((_, i) => i !== index));
   }
 
-  // Validatie: minstens 1 buddy met naam
   const atLeastOneFilled = buddies.some(b => b.naam.trim().length > 0);
 
-  if (user === undefined) {
+  if (user === undefined || loading) {
     return (
       <div className="flex items-center justify-center h-40 text-neutral-400 text-lg">
         Laden...

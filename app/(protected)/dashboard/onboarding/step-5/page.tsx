@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, getDocs, collection } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection } from "firebase/firestore";
 import { useAuth } from "@/components/auth/AuthContext";
 import { OnboardingStepProgressBar } from "@/components/onboarding/OnboardingStepProgressBar";
 
@@ -14,30 +14,30 @@ export default function StopdatumStepPage() {
   const { user } = useAuth();
   const [stopDate, setStopDate] = useState<string>("");
   const [motivatie, setMotivatie] = useState<string>("");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
 
-  // Redirect als user niet ingelogd
   useEffect(() => {
     if (user === undefined) return;
-    if (!user) {
-      router.push("/login");
-    }
-  }, [user, router]);
-
-  // Voortgang ophalen als user er is
-  useEffect(() => {
     if (!user) return;
-    const fetchCompletedSteps = async () => {
-      const snap = await getDocs(collection(db, "users", user.uid, "onboarding"));
-      setCompletedSteps(snap.size);
-    };
-    fetchCompletedSteps();
+    async function fetchData() {
+      if (!user) return;
+      const snap = await getDoc(doc(db, "users", user.uid, "onboarding", "stopdatum"));
+      if (snap.exists()) {
+        const data = snap.data();
+        setStopDate(data.date || "");
+        setMotivatie(data.motivatie || "");
+      }
+      const stepsSnap = await getDocs(collection(db, "users", user.uid, "onboarding"));
+      setCompletedSteps(stepsSnap.size);
+      setLoading(false);
+    }
+    fetchData();
   }, [user]);
 
-  const currentStep = 4; // step-5 = index 4
+  const currentStep = 4;
 
-  // Opslaan
   async function handleSave() {
     if (!user) return;
     setSaving(true);
@@ -55,7 +55,7 @@ export default function StopdatumStepPage() {
     router.push("/dashboard/onboarding/step-6");
   }
 
-  if (user === undefined) {
+  if (user === undefined || loading) {
     return (
       <div className="flex items-center justify-center h-40 text-neutral-400 text-lg">
         Laden...

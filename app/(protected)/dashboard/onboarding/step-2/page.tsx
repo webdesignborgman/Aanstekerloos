@@ -4,38 +4,39 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, getDocs, collection } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection } from "firebase/firestore";
 import { useAuth } from "@/components/auth/AuthContext";
 import { OnboardingStepProgressBar } from "@/components/onboarding/OnboardingStepProgressBar";
 
 export default function CopingStepPage() {
   const router = useRouter();
-  const { user } = useAuth(); // user: User | null
+  const { user } = useAuth();
   const [strategies, setStrategies] = useState<string>("");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
 
-  // 1. Redirect als user niet ingelogd (TypeScript-safe)
   useEffect(() => {
     if (user === undefined) return;
-    if (!user) {
-      router.push("/login");
-    }
-  }, [user, router]);
-
-  // 2. Voortgang ophalen als user er is
-  useEffect(() => {
     if (!user) return;
-    const fetchCompletedSteps = async () => {
+    async function fetchData() {
+      if (!user) return;
+      const copingSnap = await getDoc(doc(db, "users", user.uid, "onboarding", "coping"));
+      if (copingSnap.exists()) {
+        const data = copingSnap.data();
+        if (Array.isArray(data.strategies)) {
+          setStrategies(data.strategies.join("\n"));
+        }
+      }
       const snap = await getDocs(collection(db, "users", user.uid, "onboarding"));
       setCompletedSteps(snap.size);
-    };
-    fetchCompletedSteps();
+      setLoading(false);
+    }
+    fetchData();
   }, [user]);
 
-  const currentStep = 1; // step 2 = index 1
+  const currentStep = 1;
 
-  // 3. Opslaan, user check vóór elk gebruik!
   async function handleSave() {
     if (!user) return;
     setSaving(true);
@@ -52,7 +53,7 @@ export default function CopingStepPage() {
     router.push("/dashboard/onboarding/step-3");
   }
 
-  if (user === undefined) {
+  if (user === undefined || loading) {
     return (
       <div className="flex items-center justify-center h-40 text-neutral-400 text-lg">
         Laden...
@@ -73,8 +74,7 @@ export default function CopingStepPage() {
           Wat ga je doen als je trek krijgt?
         </h2>
         <p className="mb-4 text-neutral-700 text-center">
-          Noteer hieronder wat je kunt doen als je zin hebt in een sigaret. 
-          <br />
+          Noteer hieronder wat je kunt doen als je zin hebt in een sigaret.{" "}
           <span className="text-orange-600 font-semibold">
             Denk aan: glas water drinken, ademhalingsoefening, iemand bellen, wandeling maken, enzovoort.
           </span>
