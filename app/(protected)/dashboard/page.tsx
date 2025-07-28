@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/components/auth/AuthContext";
-
 import { DashboardHero } from "@/components/dashboard/DashboardHero";
 import OnboardingIntroCard from "@/components/onboarding/OnboardingIntroCard";
 import MotivatieCard from "@/components/stop/MotivatieCard";
 import CopingCard from "@/components/stop/CopingCard";
 import StopStatsCard from "@/components/stop/StopStatsCard";
 import { UserData } from "@/types/smokeLog";
+import HealthMilestoneGrid from "@/components/stop/HealthMilestoneGrid";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -118,7 +118,10 @@ export default function DashboardPage() {
             pricePerPack={userData.pricePerPack}
             cigsPerPack={userData.cigsPerPack}
           />
+          <HealthMilestoneGrid stopDate={userData.realStopDate} />
+
         </>
+        
       ) : (
         <OnboardingIntroCard />
       )}
