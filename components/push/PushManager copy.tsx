@@ -57,6 +57,7 @@ export default function PushManager() {
     navigator.serviceWorker
       .register("/sw.js")
       .then((reg) => {
+        // SW geregistreerd: reg.scope
         // Controleer op bestaande subscription
         reg.pushManager.getSubscription().then((existingSub) => {
           if (existingSub) {
@@ -70,46 +71,6 @@ export default function PushManager() {
       })
       .catch((err) => console.error("❌ SW registratie mislukt:", err));
   }, []);
-
-  /**
-   * Synchroniseer een bestaande subscription met de ingelogde user.
-   * Dit effect wordt uitgevoerd wanneer de user, de subscribed-status of het endpoint verandert.
-   * Het verwijdert de subscription uit eventuele andere accounts en slaat hem op voor de huidige gebruiker.
-   */
-  useEffect(() => {
-    async function syncSubscription() {
-      if (!user || !isSubscribed || !currentEndpoint) {
-        return;
-      }
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        const existingSub = await reg.pushManager.getSubscription();
-        if (!existingSub) return;
-
-        // Verwijder de subscription uit andere accounts
-        await fetch("/api/web-push/subscription", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: existingSub.endpoint }),
-        });
-
-        // Sla de subscription op voor de huidige gebruiker
-        await fetch("/api/web-push/subscription", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subscription: existingSub.toJSON(),
-            uid: user.uid,
-            platform: getPlatformString(),
-            createdAt: new Date().toISOString(),
-          }),
-        });
-      } catch (err) {
-        console.error("Error syncing subscription:", err);
-      }
-    }
-    syncSubscription();
-  }, [user, isSubscribed, currentEndpoint]);
 
   /**
    * Activeer pushnotificaties (abonneer) met respect voor platform-specifieke regels.
@@ -160,7 +121,7 @@ export default function PushManager() {
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== "granted") {
-        // ❌ Abonnement gestopt: permissie niet verleend.
+      // ❌ Abonnement gestopt: permissie niet verleend.
         return;
       }
 
@@ -230,9 +191,6 @@ export default function PushManager() {
   }
 
   return (
-    // … (UI‑code zoals bij jullie oorspronkelijke component)
-  
-
     <div className="p-4 bg-gray-50 rounded space-y-2">
       <p>
         Push-permissie: <strong>{permission}</strong>
