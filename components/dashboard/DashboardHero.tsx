@@ -4,6 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { SmokeNowModal } from "@/components/smoke/SmokeNowModal";
 import Link from "next/link";
+import { AIAnalyseButton } from "../smoke/AIAnalyseButton";
 
 export function DashboardHero() {
   return (
@@ -29,6 +30,8 @@ export function DashboardHero() {
           Rookpatroon‑inzicht
         </Link>
       </div>
+      <h2 className="text-lg font-bold mt-8 mb-2">📊 Automatische Inzichten</h2>
+<AIAnalyseButton />
     </section>
   );
 }

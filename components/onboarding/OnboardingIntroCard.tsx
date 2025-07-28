@@ -61,7 +61,10 @@ export default function OnboardingIntroCard() {
 
   return (
     <div className="max-w-xl mx-auto mb-8">
-      <div className="mb-4 text-center">
+     
+
+      <div className="rounded-2xl p-6 shadow-xl bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-100">
+              <div className="mb-4 text-center">
         <div className="inline-flex items-center gap-2 justify-center text-orange-600 font-bold text-lg">
           <Sparkles className="w-6 h-6 animate-pulse" />
           Maak je klaar voor een rookvrije toekomst!
@@ -71,8 +74,6 @@ export default function OnboardingIntroCard() {
           Je hoeft het niet perfect te doen – iedere stap helpt!
         </p>
       </div>
-
-      <div className="rounded-2xl p-6 shadow-xl bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-100">
         <h2 className="text-2xl font-bold text-orange-800 mb-2 text-center">
           Start je voorbereiding!
         </h2>

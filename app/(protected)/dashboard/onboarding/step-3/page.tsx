@@ -19,6 +19,7 @@ export default function RookgedragStepPage() {
   const [kostenPerPakje, setKostenPerPakje] = useState<string>("");
   const [pakjesPerWeek, setPakjesPerWeek] = useState<string>("");
   const [kostenPerShag, setKostenPerShag] = useState<string>("");
+  const [sigarettenGedraaid, setSigarettenGedraaid] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
@@ -40,6 +41,7 @@ export default function RookgedragStepPage() {
           setType("shag");
           setPakjesPerWeek(data.pakjesPerWeek?.toString() || "");
           setKostenPerShag(data.kostenPerShag?.toString() || "");
+          setSigarettenGedraaid(data.sigarettenGedraaid?.toString() || "");
         }
       }
       const snap = await getDocs(collection(db, "users", user.uid, "onboarding"));
@@ -68,6 +70,7 @@ export default function RookgedragStepPage() {
         type,
         pakjesPerWeek: pakjesPerWeek ? parseInt(pakjesPerWeek) : null,
         kostenPerShag: kostenPerShag ? parseFloat(kostenPerShag) : null,
+        sigarettenGedraaid: sigarettenGedraaid ? parseInt(sigarettenGedraaid) : null,
         createdAt: new Date()
       };
     }
@@ -205,6 +208,20 @@ export default function RookgedragStepPage() {
                 placeholder="Bijv. 10.00"
                 className="mb-2"
               />
+            </div>
+            <div>
+              <label className="block text-sm text-orange-700 mb-1">
+                Hoeveel sigaretten draai je uit één pakje shag?
+              </label>
+              <Input
+                type="number"
+                min={0}
+                value={sigarettenGedraaid}
+                onChange={e => setSigarettenGedraaid(e.target.value)}
+                placeholder="Bijv. 40"
+                className="mb-2"
+              />
+              <span className="text-xs text-neutral-600">Zo kun je straks bijhouden hoeveel je niet hebt gerookt!</span>
             </div>
           </div>
         )}

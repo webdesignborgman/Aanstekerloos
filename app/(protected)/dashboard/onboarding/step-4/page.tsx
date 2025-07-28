@@ -23,6 +23,8 @@ export default function TriggersStepPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [selected, setSelected] = useState<string[]>([]);
+  const [rookType, setRookType] = useState<string>("");
+  const [sigarettenGedraaid, setSigarettenGedraaid] = useState<string>("");
   const [customTrigger, setCustomTrigger] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,6 +40,15 @@ export default function TriggersStepPage() {
       if (snap.exists()) {
         const data = snap.data();
         if (Array.isArray(data.moments)) setSelected(data.moments);
+        if (typeof data.sigarettenGedraaid === "number" || typeof data.sigarettenGedraaid === "string") {
+          setSigarettenGedraaid(data.sigarettenGedraaid.toString());
+        }
+      }
+      // Haal rooktype op uit rookgedrag document
+      const rookgedragSnap = await getDoc(doc(db, "users", user.uid, "onboarding", "rookgedrag"));
+      if (rookgedragSnap.exists()) {
+        const rookgedrag = rookgedragSnap.data();
+        if (typeof rookgedrag.type === "string") setRookType(rookgedrag.type);
       }
       const stepsSnap = await getDocs(collection(db, "users", user.uid, "onboarding"));
       setCompletedSteps(stepsSnap.size);
@@ -73,6 +84,7 @@ export default function TriggersStepPage() {
       doc(db, "users", user.uid, "onboarding", "triggers"),
       {
         moments: selected,
+        sigarettenGedraaid: sigarettenGedraaid ? parseInt(sigarettenGedraaid) : null,
         createdAt: new Date()
       },
       { merge: true }
@@ -99,6 +111,34 @@ export default function TriggersStepPage() {
       />
 
       <div className="bg-gradient-to-br from-orange-50 to-yellow-50 border border-orange-100 rounded-2xl p-6 shadow-xl">
+        <div className="mb-2 p-2 bg-yellow-100 rounded text-xs text-orange-700">
+          <strong>Debug:</strong> rookType = <span className="font-mono">{rookType}</span>, sigarettenGedraaid = <span className="font-mono">{sigarettenGedraaid}</span>
+          <br />
+          <label>
+            rookType aanpassen:
+            <select value={rookType} onChange={e => setRookType(e.target.value)} className="ml-2 p-1 border rounded">
+              <option value="">(leeg)</option>
+              <option value="sigaretten">sigaretten</option>
+              <option value="shag">shag</option>
+            </select>
+          </label>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-2"
+            onClick={async () => {
+              if (!user) return;
+              await setDoc(
+                doc(db, "users", user.uid, "onboarding", "rookgedrag"),
+                { type: rookType },
+                { merge: true }
+              );
+              // Optioneel: forceer reload van rookType uit Firestore
+            }}
+          >
+            rookType opslaan
+          </Button>
+        </div>
         <h2 className="text-xl font-bold text-orange-800 mb-2 text-center">
           Wanneer rook je meestal?
         </h2>
@@ -165,6 +205,22 @@ export default function TriggersStepPage() {
           </div>
         )}
 
+        {rookType === "shag" && (
+          <div className="mb-4">
+            <label className="block text-sm text-orange-700 mb-1">
+              Hoeveel sigaretten heb je uit een pakje gedraaid?
+            </label>
+            <Input
+              type="number"
+              min={0}
+              value={sigarettenGedraaid}
+              onChange={e => setSigarettenGedraaid(e.target.value)}
+              placeholder="Bijv. 5"
+              className="mb-2"
+            />
+            <span className="text-xs text-neutral-600">Zo kun je straks bijhouden hoeveel je niet hebt gerookt!</span>
+          </div>
+        )}
         <Button
           className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold mt-2"
           disabled={saving || selected.length === 0}
