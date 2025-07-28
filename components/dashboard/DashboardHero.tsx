@@ -1,12 +1,36 @@
 // components/dashboard/DashboardHero.tsx
 "use client";
 
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { SmokeNowModal } from "@/components/smoke/SmokeNowModal";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth/AuthContext";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import Link from "next/link";
 import { AIAnalyseButton } from "../smoke/AIAnalyseButton";
 
 export function DashboardHero() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [saving, setSaving] = React.useState(false);
+
+  async function handleStopNow() {
+    if (!user) return;
+    setSaving(true);
+    await setDoc(
+      doc(db, "users", user.uid, "onboarding", "stopdatum"),
+      {
+        realStopDate: new Date(),
+        createdAt: new Date()
+      },
+      { merge: true }
+    );
+    setSaving(false);
+    router.push("/dashboard");
+  }
+
   return (
     <section className="bg-gradient-to-br from-orange-100 via-white to-amber-100 rounded-xl shadow p-6 mb-8 flex flex-col items-center text-center gap-4">
       <h2 className="text-2xl sm:text-3xl font-bold text-orange-900">Welkom terug!</h2>
@@ -15,8 +39,13 @@ export function DashboardHero() {
       </p>
       <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
         <SmokeNowModal />
-        <Button asChild variant="outline" className="border-green-600 text-green-700 hover:bg-green-50">
-          <Link href="/dashboard/stoppen">Ik stop nu!</Link>
+        <Button
+          variant="outline"
+          className="border-green-600 text-green-700 hover:bg-green-50"
+          disabled={saving}
+          onClick={handleStopNow}
+        >
+          {saving ? "Bezig..." : "Ik stop nu!"}
         </Button>
       </div>
       {/* Rookpatroon inzicht link gecentreerd onder de knoppen */}
@@ -31,7 +60,7 @@ export function DashboardHero() {
         </Link>
       </div>
       <h2 className="text-lg font-bold mt-8 mb-2">📊 Automatische Inzichten</h2>
-<AIAnalyseButton />
+      <AIAnalyseButton />
     </section>
   );
 }

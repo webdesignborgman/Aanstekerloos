@@ -10,3 +10,15 @@ export interface SmokeLog {
   isWorkday?: boolean;
   urgency?: number;
 }
+
+export interface UserData {
+  motivatie: string;
+  plannedStopDate: string;
+  realStopDate: { seconds: number; nanoseconds: number } | null;
+  pricePerPack: number;
+  cigsPerPack: number;
+  type: string;
+  sigarettenGedraaid: number;
+  pakjesPerWeek: number;
+  sigarettenPerPakje: number;
+}
