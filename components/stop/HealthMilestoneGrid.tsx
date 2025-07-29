@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc } from "firebase/firestore";
+import { collection, getDocs, setDoc, doc as firestoreDoc } from "firebase/firestore";
 
 interface Milestone {
   id: string;
@@ -65,8 +65,9 @@ export default function HealthMilestoneGrid({ stopDate }: Props) {
       const progress = Math.min(100, Math.round((totalMinutes / ms.minutes) * 100));
 
       if (reached && user && !unlocked.includes(ms.id)) {
-        const ref = collection(db, "users", user.uid, "unlockedMilestones");
-        addDoc(ref, { milestoneId: ms.id, unlockedAt: new Date() });
+        const docRef = firestoreDoc(db, "users", user.uid, "unlockedMilestones", ms.id);
+        setDoc(docRef, { milestoneId: ms.id, unlockedAt: new Date() }, { merge: true });
+        setUnlocked((prev) => [...prev, ms.id]);
 
         if ("Notification" in window && Notification.permission === "granted") {
           navigator.serviceWorker.ready.then((reg) => {

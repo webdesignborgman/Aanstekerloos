@@ -4,29 +4,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/AuthContext";
 import { urlBase64ToUint8Array } from "@/lib/push";
 
-/**
- * Detecteer of de huidige gebruiker op een iOS-device zit.
- */
 function isIOS(): boolean {
   return /iP(hone|od|ad)/i.test(navigator.userAgent);
 }
 
-/**
- * Controleer of op iOS de app nog geïnstalleerd moet worden.
- * Op andere platformen is 'standalone' niet verplicht.
- */
 function shouldRequireStandalone(): boolean {
-  if (!isIOS()) {
-    // Niet iOS → geen standalone vereist
-    return false;
-  }
-
-  // Test display-mode voor moderne browsers (iOS 16+).
-  if (window.matchMedia("(display-mode: standalone)").matches) {
-    return false;
-  }
-
-  // Fallback voor oudere iOS-browsers: navigator.standalone kan bestaan.
+  if (!isIOS()) return false;
+  if (window.matchMedia("(display-mode: standalone)").matches) return false;
   const navWithStandalone = navigator as Navigator & { standalone?: boolean };
   return !(navWithStandalone.standalone === true);
 }
@@ -36,11 +20,9 @@ export default function PushManager() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [currentEndpoint, setCurrentEndpoint] = useState<string | null>(null);
 
-  // Authentication-context uit je project
   const { user } = useAuth();
 
   useEffect(() => {
-    // Controleer of serviceworkers en Push API ondersteund worden
     if (
       typeof window === "undefined" ||
       !("serviceWorker" in navigator) ||
@@ -50,14 +32,11 @@ export default function PushManager() {
       return;
     }
 
-    // Bewaar huidige permissiestatus
     setPermission(Notification.permission);
 
-    // Registreer de serviceworker
     navigator.serviceWorker
-      .register("/sw.js")
+      .register("/custom-sw.js")
       .then((reg) => {
-        // Controleer op bestaande subscription
         reg.pushManager.getSubscription().then((existingSub) => {
           if (existingSub) {
             setIsSubscribed(true);
@@ -71,56 +50,12 @@ export default function PushManager() {
       .catch((err) => console.error("❌ SW registratie mislukt:", err));
   }, []);
 
-  /**
-   * Synchroniseer een bestaande subscription met de ingelogde user.
-   * Dit effect wordt uitgevoerd wanneer de user, de subscribed-status of het endpoint verandert.
-   * Het verwijdert de subscription uit eventuele andere accounts en slaat hem op voor de huidige gebruiker.
-   */
-  useEffect(() => {
-    async function syncSubscription() {
-      if (!user || !isSubscribed || !currentEndpoint) {
-        return;
-      }
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        const existingSub = await reg.pushManager.getSubscription();
-        if (!existingSub) return;
-
-        // Verwijder de subscription uit andere accounts
-        await fetch("/api/web-push/subscription", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ endpoint: existingSub.endpoint }),
-        });
-
-        // Sla de subscription op voor de huidige gebruiker
-        await fetch("/api/web-push/subscription", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subscription: existingSub.toJSON(),
-            uid: user.uid,
-            platform: getPlatformString(),
-            createdAt: new Date().toISOString(),
-          }),
-        });
-      } catch (err) {
-        console.error("Error syncing subscription:", err);
-      }
-    }
-    syncSubscription();
-  }, [user, isSubscribed, currentEndpoint]);
-
-  /**
-   * Activeer pushnotificaties (abonneer) met respect voor platform-specifieke regels.
-   */
   const handleSubscribe = async () => {
     if (!user) {
       alert("Je moet ingelogd zijn om push te activeren.");
       return;
     }
 
-    // iOS: verplicht installeren op beginscherm
     if (shouldRequireStandalone()) {
       alert(
         "Op iOS moet je de app eerst op je beginscherm plaatsen (deelknop → 'Zet op beginscherm') om pushmeldingen te kunnen activeren."
@@ -130,17 +65,10 @@ export default function PushManager() {
 
     try {
       const reg = await navigator.serviceWorker.ready;
-
-      // Check op bestaande abonnement
       const existingSub = await reg.pushManager.getSubscription();
 
-      // Verwijder oude Firebase Cloud Messaging (FCM) subscriptions
-      if (existingSub && existingSub.endpoint.includes("fcm.googleapis.com")) {
-        await existingSub.unsubscribe();
-      }
-
-      // Als er nog een geldige subscription bestaat, stuur hem naar de backend
-      if (existingSub && !existingSub.endpoint.includes("fcm.googleapis.com")) {
+      // Als er al een subscription bestaat, stuur hem gewoon op naar de backend
+      if (existingSub) {
         await fetch("/api/web-push/subscription", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -156,15 +84,10 @@ export default function PushManager() {
         return;
       }
 
-      // Vraag toestemming
       const perm = await Notification.requestPermission();
       setPermission(perm);
-      if (perm !== "granted") {
-        // ❌ Abonnement gestopt: permissie niet verleend.
-        return;
-      }
+      if (perm !== "granted") return;
 
-      // Maak een nieuwe subscription aan met VAPID key
       const vapidKey = urlBase64ToUint8Array(
         process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
       );
@@ -175,7 +98,6 @@ export default function PushManager() {
 
       setCurrentEndpoint(sub.endpoint);
 
-      // Stuur de subscription naar de backend
       await fetch("/api/web-push/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -193,9 +115,6 @@ export default function PushManager() {
     }
   };
 
-  /**
-   * Verstuur een test push notificatie via de backend.
-   */
   const handleSendTest = async () => {
     if (!user) return;
 
@@ -216,9 +135,6 @@ export default function PushManager() {
     }
   };
 
-  /**
-   * Bepaal een simpele platform-string (alleen voor logging/analyse).
-   */
   function getPlatformString(): string {
     const ua = navigator.userAgent;
     if (/android/i.test(ua)) return "Android";
@@ -230,78 +146,47 @@ export default function PushManager() {
   }
 
   return (
-    // … (UI‑code zoals bij jullie oorspronkelijke component)
-  
+    <div className="mt-4 space-y-4">
+      <div>Push‑permissie: {permission}</div>
 
-    <div className="p-4 bg-gray-50 rounded space-y-2">
-      <p>
-        Push-permissie: <strong>{permission}</strong>
-      </p>
-
-      {/* Knop voor initiële toestemmingsaanvraag */}
       {permission === "default" && !isSubscribed && (
         <button
+          className="px-4 py-2 bg-blue-500 text-white rounded"
           onClick={handleSubscribe}
-          style={{
-            backgroundColor: "#0d9488",
-            color: "white",
-            padding: "12px 20px",
-            border: "none",
-            borderRadius: "8px",
-            fontSize: "16px",
-            width: "100%",
-          }}
         >
           Activeer Push Notifications
         </button>
       )}
 
-      {/* Knop om te abonneren nadat toestemming is gegeven */}
       {permission === "granted" && !isSubscribed && (
         <button
+          className="px-4 py-2 bg-green-500 text-white rounded"
           onClick={handleSubscribe}
-          style={{
-            backgroundColor: "#0d9488",
-            color: "white",
-            padding: "12px 20px",
-            border: "none",
-            borderRadius: "8px",
-            fontSize: "16px",
-            width: "100%",
-          }}
         >
           ✅ Abonneer voor Push Notifications
         </button>
       )}
 
-      {/* UI voor wanneer er al een subscription is */}
       {isSubscribed && (
         <div className="space-y-2">
-          <p className="text-green-700">
-            ✅ Je bent geabonneerd op push notificaties.
-          </p>
+          <div className="text-green-600">✅ Je bent geabonneerd op push notificaties.</div>
           {currentEndpoint && (
-            <p className="text-xs break-all">Endpoint: {currentEndpoint}</p>
+            <div className="break-all text-sm text-gray-600">
+              Endpoint: {currentEndpoint}
+            </div>
           )}
           <button
+            className="px-4 py-2 bg-teal-500 text-white rounded"
             onClick={handleSendTest}
-            style={{
-              backgroundColor: "#0d9488",
-              color: "white",
-              padding: "12px 20px",
-              border: "none",
-              borderRadius: "8px",
-              fontSize: "16px",
-              width: "100%",
-            }}
           >
             🚀 Verstuur test-push notificatie
           </button>
         </div>
       )}
 
-      {/* Permissie geweigerd */}
-      {permission === "denied" && <p>❌ Permissie geweigerd</p>}
+      {permission === "denied" && (
+        <div className="text-red-600">❌ Permissie geweigerd</div>
+      )}
     </div>
   );
 }
