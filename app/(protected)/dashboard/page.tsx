@@ -11,18 +11,24 @@ import CopingCard from "@/components/stop/CopingCard";
 import StopStatsCard from "@/components/stop/StopStatsCard";
 import { UserData } from "@/types/smokeLog";
 import HealthMilestoneGrid from "@/components/stop/HealthMilestoneGrid";
+import BadgeTabs from "@/components/badges/BadgeTabs";
+import { useBadgeState } from "@/components/badges/useBadgeState";
+import { checkAndUnlockAllBadges } from "@/components/badges/checkAndUnlockAllBadges";
+import { differenceInDays, differenceInMinutes } from "date-fns";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Badge hook
+  const { unlocked, unlockBadge } = useBadgeState();
+
   useEffect(() => {
     if (!user) return;
 
     const fetchOnboardingData = async () => {
       try {
-        // Haal alle relevante onboarding-subdocumenten op
         const [motivatieSnap, copingSnap, stopdatumSnap, rookgedragSnap] = await Promise.all([
           getDoc(doc(db, "users", user.uid, "onboarding", "motivatie")),
           getDoc(doc(db, "users", user.uid, "onboarding", "coping")),
@@ -35,8 +41,6 @@ export default function DashboardPage() {
         const stopdatumData = stopdatumSnap.exists() ? stopdatumSnap.data() : {};
         const rookgedragData = rookgedragSnap.exists() ? rookgedragSnap.data() : {};
 
-        // Bepaal of er een daadwerkelijke stopdatum is (realStopDate)
-        // plannedStopDate = geplande datum, realStopDate = daadwerkelijke stopdatum
         const realStopDate = stopdatumData.realStopDate ?? null;
         const plannedStopDate = stopdatumData.date ?? "";
 
@@ -86,6 +90,45 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  // 🔗 Badge-unlock logica zodra userData & unlocked geladen zijn
+  useEffect(() => {
+    if (!userData || !userData.realStopDate || !user || !unlockBadge) return;
+
+    // Statistieken berekenen (met correct onderscheid shag/sigaretten)
+    const startDate = new Date(userData.realStopDate.seconds * 1000);
+    const now = new Date();
+
+    const tijd = differenceInDays(now, startDate); // dagen rookvrij
+    const gezondheid = differenceInMinutes(now, startDate); // minuten rookvrij
+
+    let avgCigsPerDay = 0;
+    let pricePerCig = 0;
+
+    if (userData.type === "shag") {
+      // Shag: sigarettenGedraaid (per week) + (pakjesPerWeek × 70) / 7 = gemiddeld per dag
+      const cigsFromShag = (userData.pakjesPerWeek ?? 0) * 70;
+      avgCigsPerDay = ((userData.sigarettenGedraaid ?? 0) + cigsFromShag) / 7;
+      pricePerCig = (userData.pricePerPack ?? 25) / 70;
+    } else {
+      // Sigaretten: pakjesPerWeek × sigarettenPerPakje / 7
+      avgCigsPerDay = ((userData.pakjesPerWeek ?? 0) * (userData.sigarettenPerPakje ?? 20)) / 7;
+      pricePerCig = (userData.pricePerPack ?? 10) / (userData.sigarettenPerPakje ?? 20);
+    }
+
+    const totalCigs = tijd * avgCigsPerDay;
+    const geld = Math.floor(totalCigs * pricePerCig);
+
+    // Simpele streak logic (kan uitgebreid worden)
+    const streaks = tijd; // zolang je geen logica voor onderbreking hebt
+
+    // Roep checkAndUnlockAllBadges aan
+    checkAndUnlockAllBadges(
+      unlocked,
+      { tijd, geld, streaks, gezondheid },
+      unlockBadge
+    );
+  }, [userData, unlocked, unlockBadge, user]);
+
   if (!user) {
     return <p className="text-center mt-12">Gebruiker wordt geladen...</p>;
   }
@@ -119,9 +162,8 @@ export default function DashboardPage() {
             cigsPerPack={userData.cigsPerPack}
           />
           <HealthMilestoneGrid stopDate={userData.realStopDate} />
-
+          <BadgeTabs />
         </>
-        
       ) : (
         <OnboardingIntroCard />
       )}

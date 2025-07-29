@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthContext";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, setDoc, doc as firestoreDoc } from "firebase/firestore";
+import { collection, getDocs, setDoc, doc as firestoreDoc, getDoc } from "firebase/firestore";
 
 interface Milestone {
   id: string;
@@ -42,19 +42,54 @@ const MILESTONES: Milestone[] = [
 
 export default function HealthMilestoneGrid({ stopDate }: Props) {
   const { user } = useAuth();
-  const [unlocked, setUnlocked] = useState<string[]>([]);
+  const [unlockedIds, setUnlockedIds] = useState<string[]>([]);
 
+  // Bij eerste render: haal reeds behaalde milestones op
   useEffect(() => {
     if (!user) return;
     const fetchUnlocked = async () => {
       const ref = collection(db, "users", user.uid, "unlockedMilestones");
       const snap = await getDocs(ref);
       const ids = snap.docs.map((doc) => doc.data().milestoneId);
-      setUnlocked(ids);
+      setUnlockedIds(ids);
     };
     fetchUnlocked();
   }, [user]);
 
+  // Bij nieuwe milestones: check of er milestones behaald zijn die nog niet in Firestore staan
+  useEffect(() => {
+    if (!user) return;
+
+    const now = new Date();
+    const startDate = new Date(stopDate.seconds * 1000);
+    const totalMinutes = differenceInMinutes(now, startDate);
+
+    MILESTONES.forEach(async (ms) => {
+      if (totalMinutes >= ms.minutes && !unlockedIds.includes(ms.id)) {
+        const docRef = firestoreDoc(db, "users", user.uid, "unlockedMilestones", ms.id);
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
+          await setDoc(docRef, { milestoneId: ms.id, unlockedAt: new Date() }, { merge: true });
+
+          if ("Notification" in window && Notification.permission === "granted") {
+            navigator.serviceWorker.ready.then((reg) => {
+              reg.showNotification("🎉 Nieuwe gezondheidsmijlpaal!", {
+                body: `${ms.label} bereikt: ${ms.description}`,
+                icon: "/icons/badge-health.png",
+              });
+            });
+          }
+
+          toast.success(`🎉 Je hebt ${ms.label} behaald: ${ms.description}`);
+
+          // Update local unlocked lijst
+          setUnlockedIds((prev) => [...prev, ms.id]);
+        }
+      }
+    });
+  }, [user, stopDate, unlockedIds]);
+
+  // Render grid
   const cards = useMemo(() => {
     const now = new Date();
     const startDate = new Date(stopDate.seconds * 1000);
@@ -63,23 +98,6 @@ export default function HealthMilestoneGrid({ stopDate }: Props) {
     return MILESTONES.map((ms) => {
       const reached = totalMinutes >= ms.minutes;
       const progress = Math.min(100, Math.round((totalMinutes / ms.minutes) * 100));
-
-      if (reached && user && !unlocked.includes(ms.id)) {
-        const docRef = firestoreDoc(db, "users", user.uid, "unlockedMilestones", ms.id);
-        setDoc(docRef, { milestoneId: ms.id, unlockedAt: new Date() }, { merge: true });
-        setUnlocked((prev) => [...prev, ms.id]);
-
-        if ("Notification" in window && Notification.permission === "granted") {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.showNotification("🎉 Nieuwe gezondheidsmijlpaal!", {
-              body: `${ms.label} bereikt: ${ms.description}`,
-              icon: "/icons/badge-health.png"
-            });
-          });
-        }
-
-        toast.success(`🎉 Je hebt ${ms.label} behaald: ${ms.description}`);
-      }
 
       return (
         <motion.div
@@ -111,7 +129,7 @@ export default function HealthMilestoneGrid({ stopDate }: Props) {
         </motion.div>
       );
     });
-  }, [stopDate, unlocked, user]);
+  }, [stopDate]);
 
   return (
     <section className="bg-muted/40 p-4 rounded-xl">
