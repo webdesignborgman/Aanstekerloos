@@ -29,17 +29,26 @@ export default function DashboardPage() {
 
     const fetchOnboardingData = async () => {
       try {
-        const [motivatieSnap, copingSnap, stopdatumSnap, rookgedragSnap] = await Promise.all([
-          getDoc(doc(db, "users", user.uid, "onboarding", "motivatie")),
-          getDoc(doc(db, "users", user.uid, "onboarding", "coping")),
-          getDoc(doc(db, "users", user.uid, "onboarding", "stopdatum")),
-          getDoc(doc(db, "users", user.uid, "onboarding", "rookgedrag")),
-        ]);
+        const [motivatieSnap, copingSnap, stopdatumSnap, rookgedragSnap] =
+          await Promise.all([
+            getDoc(doc(db, "users", user.uid, "onboarding", "motivatie")),
+            getDoc(doc(db, "users", user.uid, "onboarding", "coping")),
+            getDoc(doc(db, "users", user.uid, "onboarding", "stopdatum")),
+            getDoc(doc(db, "users", user.uid, "onboarding", "rookgedrag")),
+          ]);
 
-        const motivatie = motivatieSnap.exists() ? (motivatieSnap.data().reasons?.join("\n") ?? "") : "";
-        const coping = copingSnap.exists() ? (copingSnap.data().strategies?.join("\n") ?? "") : "";
-        const stopdatumData = stopdatumSnap.exists() ? stopdatumSnap.data() : {};
-        const rookgedragData = rookgedragSnap.exists() ? rookgedragSnap.data() : {};
+        const motivatie = motivatieSnap.exists()
+          ? motivatieSnap.data().reasons?.join("\n") ?? ""
+          : "";
+        const coping = copingSnap.exists()
+          ? copingSnap.data().strategies?.join("\n") ?? ""
+          : "";
+        const stopdatumData = stopdatumSnap.exists()
+          ? stopdatumSnap.data()
+          : {};
+        const rookgedragData = rookgedragSnap.exists()
+          ? rookgedragSnap.data()
+          : {};
 
         const realStopDate = stopdatumData.realStopDate ?? null;
         const plannedStopDate = stopdatumData.date ?? "";
@@ -48,6 +57,7 @@ export default function DashboardPage() {
         if (rookgedragData.type === "shag") {
           combined = {
             motivatie,
+            coping,
             plannedStopDate,
             realStopDate,
             type: "shag",
@@ -60,6 +70,7 @@ export default function DashboardPage() {
         } else {
           combined = {
             motivatie,
+            coping,
             plannedStopDate,
             realStopDate,
             type: "sigaretten",
@@ -82,7 +93,7 @@ export default function DashboardPage() {
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
-        .register("/sw.js")
+        .register("/custom-sw.js")
         .then((reg) => {
           console.log("📡 SW registered:", reg.scope);
         })
@@ -111,8 +122,11 @@ export default function DashboardPage() {
       pricePerCig = (userData.pricePerPack ?? 25) / 70;
     } else {
       // Sigaretten: pakjesPerWeek × sigarettenPerPakje / 7
-      avgCigsPerDay = ((userData.pakjesPerWeek ?? 0) * (userData.sigarettenPerPakje ?? 20)) / 7;
-      pricePerCig = (userData.pricePerPack ?? 10) / (userData.sigarettenPerPakje ?? 20);
+      avgCigsPerDay =
+        ((userData.pakjesPerWeek ?? 0) * (userData.sigarettenPerPakje ?? 20)) /
+        7;
+      pricePerCig =
+        (userData.pricePerPack ?? 10) / (userData.sigarettenPerPakje ?? 20);
     }
 
     const totalCigs = tijd * avgCigsPerDay;
@@ -138,7 +152,11 @@ export default function DashboardPage() {
   }
 
   if (!userData) {
-    return <p className="text-center mt-12 text-red-500">Kon geen gebruikersdata laden.</p>;
+    return (
+      <p className="text-center mt-12 text-red-500">
+        Kon geen gebruikersdata laden.
+      </p>
+    );
   }
 
   const isStopped = !!userData.realStopDate;
@@ -151,7 +169,7 @@ export default function DashboardPage() {
       {isStopped && userData.realStopDate ? (
         <>
           <MotivatieCard motivatie={userData.motivatie} />
-          <CopingCard />
+          <CopingCard coping={userData.coping} />
           <StopStatsCard
             stopDate={userData.realStopDate}
             type={userData.type}

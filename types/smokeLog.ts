@@ -13,6 +13,7 @@ export interface SmokeLog {
 
 export interface UserData {
   motivatie: string;
+  coping: string;
   plannedStopDate: string;
   realStopDate: { seconds: number; nanoseconds: number } | null;
   pricePerPack: number;
